@@ -70,3 +70,4 @@ type Settings = { arkKey: string; model: string; target: Nutr }
 ## 进度
 
 - 2026-10-19：定方案。AI 用豆包（已验证浏览器能直接调用）；要每日目标；备份到 iCloud，不做云同步；先自己用，暂不开源、不做小程序。个人主体的小程序基本上不了 AI 功能（要企业主体、每年 300 元认证费、算法备案），以后再说。
+- 2026-10-19：步骤 1 代码完成并已部署。仓库 github.com/jasper251k/jianfei，网址 https://jasper251k.github.io/jianfei/ ，改完运行 `./deploy.sh` 发布。文件：`src/db.ts`（weights 表）、`src/date.ts`、`src/weights.ts`（识别输入、7 天平均、每周平均）、`pages/Today.tsx`（输入栏、今天体重、最近记录）、`pages/Calendar.tsx`（月历、点一天补记/修改/删除）、`pages/Trend.tsx` + `components/WeightChart.tsx`（手写 SVG：灰点每日、蓝线 7 天平均、按住看数值；每周平均表）。已有体重由用户在输入框多行粘贴导入，不进仓库。待手机实测。
