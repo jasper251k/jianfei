@@ -241,11 +241,233 @@ textarea.input {
   position: sticky;
   bottom: 0;
   margin-top: auto;
+  padding: 8px 0 0;
+  background: var(--bg);
+}
+.composer .bar {
   display: flex;
   gap: 8px;
   align-items: flex-end;
-  padding: 8px 0 0;
+}
+.cam {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.picked {
+  position: relative;
+  width: 72px;
+  margin-bottom: 8px;
+}
+.picked img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+}
+.picked button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--text);
+  color: #fff;
+  font-size: 14px;
+  line-height: 22px;
+}
+.gear {
+  font-size: 14px;
+  color: var(--sub);
+}
+.eaten {
+  font-size: 15px;
+}
+.eaten b {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.meals {
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.meal {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.meal:last-child {
+  border-bottom: 0;
+}
+.mealrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mealrow img,
+.mealrow .noimg {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.mealrow .noimg {
+  display: grid;
+  place-items: center;
   background: var(--bg);
+  font-size: 12px;
+  color: var(--sub);
+}
+.mealtext {
+  flex: 1;
+  min-width: 0;
+}
+.mealtext .names {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meal .kcal {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.meal .kcal small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--sub);
+}
+.mealmore {
+  margin-top: 8px;
+  padding-left: 54px;
+}
+.mealmore .row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 3px 0;
+}
+.mealmore p {
+  margin: 6px 0;
+}
+.mealmore .btn {
+  margin-top: 4px;
+  padding-left: 0;
+  background: none;
+}
+
+/* ---------- 豆包估算卡片 ---------- */
+.draft {
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.drafthead {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.drafthead img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.busy {
+  color: var(--sub);
+  padding: 20px 0;
+  text-align: center;
+}
+.error {
+  color: var(--up);
+  font-size: 14px;
+}
+.items {
+  display: flex;
+  flex-direction: column;
+}
+.item {
+  display: grid;
+  grid-template-columns: 1fr auto auto 28px;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.item input {
+  font: inherit;
+  font-size: 16px;
+  border: 0;
+  border-bottom: 1px dashed var(--line);
+  background: none;
+  padding: 2px 0;
+  outline: none;
+  min-width: 0;
+}
+.item input:focus {
+  border-bottom-color: var(--text);
+}
+.item label {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--sub);
+}
+.item label input {
+  width: 52px;
+  text-align: right;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.item .x {
+  color: var(--sub);
+  font-size: 18px;
+}
+.item .macro {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--sub);
+}
+.total {
+  font-size: 14px;
+}
+.total b {
+  font-size: 18px;
+}
+.note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--sub);
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.fix {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------- 设置 ---------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0;
+}
+.field > span {
+  font-size: 14px;
+}
+.btn.wide {
+  width: 100%;
+  padding: 12px;
 }
 .send {
   flex: none;
