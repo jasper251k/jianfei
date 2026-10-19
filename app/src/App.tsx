@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db'
-import { seedOnce } from './seed'
 import Today from './pages/Today'
 import Calendar from './pages/Calendar'
 import Trend from './pages/Trend'
@@ -25,7 +24,6 @@ export default function App() {
 
   useEffect(() => {
     navigator.storage?.persist?.()
-    seedOnce()
   }, [])
 
   if (!weights || settings === undefined) return null
