@@ -455,7 +455,97 @@ textarea.input {
   gap: 8px;
 }
 
+/* ---------- 热量额度 ---------- */
+.eaten b.over {
+  color: var(--up);
+}
+.bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #ebebe9;
+  overflow: hidden;
+}
+.bar.big {
+  height: 16px;
+  border-radius: 8px;
+  margin: 8px 0 6px;
+}
+.bar .fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+.bar .fill.over {
+  background: var(--up);
+}
+.macros {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.macrorow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.macrorow .name {
+  width: 30px;
+  color: var(--sub);
+}
+.macrorow .num {
+  width: 64px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- 设置 ---------- */
+.settings .seg {
+  margin-top: 4px;
+}
+.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.four {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.four .field {
+  margin: 8px 0 0;
+}
+.four .field > span {
+  font-size: 12px;
+  color: var(--sub);
+}
+.four .input {
+  padding: 8px 6px;
+}
+select.input {
+  appearance: none;
+  -webkit-appearance: none;
+}
+.rec {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 4px;
+  font-size: 14px;
+}
+.settings > .btn.wide {
+  margin-bottom: 16px;
+}
 .field {
   display: flex;
   flex-direction: column;

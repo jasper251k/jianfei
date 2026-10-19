@@ -34,7 +34,11 @@ export default function App() {
     return (
       <div className="app">
         <main className="screen">
-          <Settings settings={settings ?? undefined} onClose={() => setShowSettings(false)} />
+          <Settings
+            settings={settings ?? undefined}
+            latestKg={weights[weights.length - 1]?.kg}
+            onClose={() => setShowSettings(false)}
+          />
         </main>
       </div>
     )

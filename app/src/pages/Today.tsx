@@ -4,8 +4,9 @@ import { db, sumNutr, type Settings, type Weight } from '../db'
 import { addDays, md, today } from '../date'
 import { avg7, fmtDiff, fmtKg, parseWeights, prevOf } from '../weights'
 import { compress, useBlobUrl } from '../photos'
-import { fmtNutr } from '../nutr'
+import { dailyTarget } from '../target'
 import type { Turn } from '../ai'
+import Budget from '../components/Budget'
 import Diff from '../components/Diff'
 import MealCard from '../components/MealCard'
 import MealDraft from '../components/MealDraft'
@@ -134,10 +135,7 @@ export default function Today({
 
       <section className="card">
         <div className="label">今天吃的</div>
-        <div className="eaten">
-          <b>{Math.round(eaten.kcal)}</b> 千卡
-        </div>
-        <div className="sub">{fmtNutr(eaten)}</div>
+        <Budget eaten={eaten} target={dailyTarget(settings, weights[weights.length - 1]?.kg)} />
         {meals.length > 0 && (
           <div className="meals">
             {meals.map((m) => (

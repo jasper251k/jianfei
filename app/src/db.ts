@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
+import type { Profile } from './target'
 
 // date: YYYY-MM-DD（本地日期），一天一条晨起体重
 export type Weight = { date: string; kg: number }
@@ -20,7 +21,8 @@ export type Meal = {
   createdAt: number
 }
 
-export type Settings = { key: 'app'; arkKey: string; model: string }
+// custom: 自己改过的每日目标；没有就按 profile 和最近体重算
+export type Settings = { key: 'app'; arkKey: string; model: string; profile?: Profile; custom?: Nutr }
 
 export const db = new Dexie('jianfei') as Dexie & {
   weights: EntityTable<Weight, 'date'>
