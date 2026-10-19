@@ -39,7 +39,7 @@ export default function Settings({ settings, onClose }: { settings?: S; onClose:
             autoCapitalize="off"
             autoCorrect="off"
             value={model}
-            placeholder="如 doubao-seed-2-0-lite-xxxxxx"
+            placeholder="如 doubao-seed-2-1-turbo-260628"
             onChange={(e) => setModel(e.target.value)}
           />
         </label>
