@@ -1,0 +1,421 @@
+:root {
+  --bg: #f6f6f4;
+  --card: #ffffff;
+  --text: #1c1c1e;
+  --sub: #8a8a8e;
+  --line: #e8e8e6;
+  --accent: #2f6fdb;
+  --down: #1f8a4c; /* 体重降了 */
+  --up: #d1453b; /* 体重涨了 */
+  --radius: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-tap-highlight-color: transparent;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+h1,
+h2 {
+  margin: 0;
+}
+
+/* ---------- 框架 ---------- */
+.app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.screen {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+  padding-top: env(safe-area-inset-top);
+}
+.today {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.tabbar {
+  display: flex;
+  border-top: 1px solid var(--line);
+  background: var(--card);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tabbar button {
+  flex: 1;
+  padding: 12px 0;
+  font-size: 15px;
+  color: var(--sub);
+}
+.tabbar button.on {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.pagehead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 16px 0 12px;
+}
+.pagehead h1 {
+  font-size: 24px;
+}
+.calendar .pagehead {
+  align-items: center;
+  justify-content: space-between;
+}
+.calendar .pagehead h1 {
+  font-size: 20px;
+}
+.arrow {
+  font-size: 28px;
+  line-height: 1;
+  padding: 0 12px;
+}
+
+/* ---------- 通用 ---------- */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.label {
+  font-size: 13px;
+  color: var(--sub);
+  margin-bottom: 6px;
+}
+.sub {
+  color: var(--sub);
+  font-size: 13px;
+}
+.hint {
+  color: var(--sub);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 4px 2px 12px;
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.input {
+  width: 100%;
+  font: inherit;
+  font-size: 16px; /* 小于 16px 时 iOS 会自动放大页面 */
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  outline: none;
+}
+.input:focus {
+  border-color: var(--text);
+}
+textarea.input {
+  resize: none;
+  line-height: 1.4;
+}
+.btn {
+  padding: 9px 16px;
+  border-radius: 10px;
+  background: var(--bg);
+}
+.btn.primary {
+  background: var(--text);
+  color: #fff;
+}
+.btn.danger {
+  color: var(--up);
+}
+
+.diff {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.diff.down {
+  color: var(--down);
+}
+.diff.up {
+  color: var(--up);
+}
+.diff.flat {
+  color: var(--sub);
+}
+
+.list .row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.list .label + .row {
+  border-top: 0;
+}
+.list .row > :first-child {
+  flex: 1;
+}
+.list .row .num {
+  font-weight: 600;
+}
+.diffcell {
+  width: 48px;
+  text-align: right;
+}
+
+.seg {
+  display: flex;
+  background: #ebebe9;
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 12px;
+}
+.seg button {
+  flex: 1;
+  padding: 6px 0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--sub);
+}
+.seg button.on {
+  background: var(--card);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ---------- 今天 ---------- */
+.hero .big {
+  font-size: 44px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.hero .big small {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--sub);
+}
+.hero .big.empty {
+  font-size: 28px;
+  color: var(--sub);
+  font-weight: 500;
+}
+.hero .facts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--sub);
+}
+
+.composer {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 8px 0 0;
+  background: var(--bg);
+}
+.send {
+  flex: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--text);
+  color: #fff;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(130px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  max-width: calc(100% - 48px);
+  background: rgba(28, 28, 30, 0.9);
+  color: #fff;
+  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  z-index: 20;
+}
+
+/* ---------- 日历 ---------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.grid.head span {
+  text-align: center;
+  font-size: 12px;
+  color: var(--sub);
+  padding-bottom: 6px;
+}
+.cell {
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 0;
+  border-radius: 8px;
+}
+.cell.now {
+  background: var(--bg);
+}
+.cell.now .d {
+  font-weight: 700;
+}
+.cell .d {
+  font-size: 12px;
+  color: var(--sub);
+}
+.cell .kg {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.cell .diff {
+  font-size: 10px;
+}
+
+.mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: flex-end;
+  z-index: 30;
+}
+.sheet {
+  width: 100%;
+  background: var(--card);
+  border-radius: 16px 16px 0 0;
+  padding: 18px 16px calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sheet h2 {
+  font-size: 17px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+}
+.spacer {
+  flex: 1;
+}
+
+/* ---------- 趋势图 ---------- */
+.legend {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--sub);
+  margin-bottom: 6px;
+}
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.legend .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sub);
+}
+.legend .line {
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+.plot {
+  position: relative;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.plot svg {
+  display: block;
+}
+.plot .gridline {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.plot .tick {
+  font-size: 11px;
+  fill: var(--sub);
+  font-variant-numeric: tabular-nums;
+}
+.plot .cross {
+  stroke: var(--sub);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.plot .daily {
+  fill: var(--sub);
+  fill-opacity: 0.55;
+  stroke: var(--card);
+  stroke-width: 2;
+}
+.plot .daily.on {
+  fill-opacity: 1;
+}
+.plot .avg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.plot .avgdot {
+  fill: var(--accent);
+  stroke: var(--card);
+  stroke-width: 2;
+}
+.tip {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+  white-space: nowrap;
+}
