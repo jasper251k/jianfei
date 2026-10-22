@@ -473,6 +473,50 @@ textarea.input {
 .total {
   font-size: 14px;
 }
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 13px;
+  color: var(--sub);
+}
+.remember > div {
+  flex: 1;
+}
+.remember b {
+  color: var(--text);
+}
+.remember .btn {
+  flex: none;
+  background: var(--card);
+  font-size: 14px;
+}
+.foodrow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.foodrow:last-child {
+  border-bottom: 0;
+}
+.foodrow .sub {
+  font-size: 13px;
+}
+.foodedit {
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+.foodedit .actions {
+  margin-top: 10px;
+}
 .total b {
   font-size: 18px;
 }

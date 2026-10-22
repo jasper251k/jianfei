@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { addMeal, newId, sumNutr, type Item, type Settings } from '../db'
-import { estimate, type Turn } from '../ai'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { addMeal, db, newId, sumNutr, type Item, type Settings } from '../db'
+import { estimate, type Per100, type Turn } from '../ai'
+import { known, rememberFood } from '../foods'
 import { addDays, hm, md, today } from '../date'
 import { useBlobUrl } from '../photos'
 import { fmtNutr } from '../nutr'
@@ -24,6 +26,10 @@ export default function MealDraft({
   // 豆包从话里听出的日期和钟点（「早上忘记记了」→ 今天 08:00）
   const [day, setDay] = useState(0)
   const [time, setTime] = useState('')
+  // 这次报的每 100 克营养，可以记住；remembered 是点过「记住」的名字
+  const [per100, setPer100] = useState<Per100[]>([])
+  const [remembered, setRemembered] = useState<string[]>([])
+  const foods = useLiveQuery(() => db.foods.toArray())
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [fix, setFix] = useState('')
@@ -34,13 +40,18 @@ export default function MealDraft({
     setBusy(true)
     setError('')
     try {
-      const r = await estimate(settings ?? { key: 'app', arkKey: '', model: '' }, ts)
+      const r = await estimate(settings ?? { key: 'app', arkKey: '', model: '' }, ts, await db.foods.toArray())
       // 把豆包的回答接在最后一轮上，纠正时它能看到上一次的结果
       setTurns(ts.map((t, i) => (i === ts.length - 1 ? { ...t, answer: r.raw } : t)))
       setItems(r.items)
       setNote(r.note)
       setDay(r.day)
       setTime(r.time)
+      setPer100(r.per100)
+      // 说了「记住这个」的直接存，不用再点按钮
+      const auto = r.per100.filter((f) => f.remember)
+      for (const f of auto) await rememberFood(f.name, f.per100)
+      if (auto.length) setRemembered((xs) => [...xs, ...auto.map((f) => f.name)])
       setFix('')
     } catch (e) {
       setError((e as Error).message)
@@ -159,12 +170,36 @@ export default function MealDraft({
         )}
         {!busy && note && <p className="note">{note}</p>}
 
+        {!busy &&
+          per100.map((f) => {
+            const done = remembered.includes(f.name)
+            // 早就记住、数也一样的不再问
+            if (!done && known(foods ?? [], f.name, f.per100)) return null
+            return (
+              <div className="remember" key={f.name}>
+                <div>
+                  <b>{f.name}</b> 每 100 克 {f.per100.kcal} 千卡 · {fmtNutr(f.per100)}
+                </div>
+                <button
+                  className="btn"
+                  disabled={done}
+                  onClick={async () => {
+                    await rememberFood(f.name, f.per100)
+                    setRemembered((xs) => [...xs, f.name])
+                  }}
+                >
+                  {done ? '已记住 ✓' : '记住这个食物'}
+                </button>
+              </div>
+            )
+          })}
+
         {!busy && (
           <div className="fix">
             <input
               className="input"
               value={fix}
-              placeholder="不对就说一句，如「饭只吃了一半」"
+              placeholder="不对就说一句，如「饭只吃了一半」「记住这个蛋白粉」"
               onChange={(e) => setFix(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && correct()}
             />
@@ -184,9 +219,15 @@ export default function MealDraft({
               重试
             </button>
           )}
-          <button className="btn primary" disabled={busy || !items.length} onClick={save}>
-            记录
-          </button>
+          {!busy && !items.length && remembered.length ? (
+            <button className="btn primary" onClick={() => onDone(false)}>
+              完成
+            </button>
+          ) : (
+            <button className="btn primary" disabled={busy || !items.length} onClick={save}>
+              记录
+            </button>
+          )}
         </div>
       </div>
     </div>

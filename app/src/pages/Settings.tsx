@@ -5,6 +5,7 @@ import { fmtKg } from '../weights'
 import { today } from '../date'
 import { cloud } from '../cloud'
 import { saveWho, syncNow } from '../sync'
+import Foods from '../components/Foods'
 
 export default function Settings({
   settings,
@@ -213,6 +214,8 @@ export default function Settings({
           {inFamily ? '全家共用这一个 Key，费用算在你的火山引擎账号上。' : '只存在这台手机上。'}
         </p>
       </section>
+
+      <Foods />
 
       {error && <p className="error">{error}</p>}
       <button className="btn primary wide" disabled={saving} onClick={save}>
