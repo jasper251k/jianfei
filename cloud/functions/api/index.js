@@ -1,4 +1,4 @@
-// 减肥记的后端：网页通过 HTTP 调用这里，这里读写云数据库。
+// 清减的后端：网页通过 HTTP 调用这里，这里读写云数据库。
 // 身份：每台手机一个随机设备码 device，devices 表记着它属于哪个家庭、哪个人。
 const crypto = require('crypto')
 const cloudbase = require('@cloudbase/node-sdk')

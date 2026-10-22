@@ -373,7 +373,7 @@ function MemberDetail({
 function InviteSheet({ code, onClose }: { code: string; onClose: () => void }) {
   const link = inviteLink(code)
   const [copied, setCopied] = useState(false)
-  const text = `一起用「减肥记」记体重和饮食吧，点开就能加入我们家：\n${link}`
+  const text = `一起用「清减」记体重和饮食吧，点开就能加入我们家：\n${link}`
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text)
