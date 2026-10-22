@@ -5,7 +5,8 @@ import { addDays, md, today } from '../date'
 import { avg7, fmtDiff, fmtKg, parseWeights, prevOf } from '../weights'
 import { compress, useBlobUrl } from '../photos'
 import { dailyTarget } from '../target'
-import type { Turn } from '../ai'
+import type { Per100, Turn } from '../ai'
+import { fmtNutr } from '../nutr'
 import { comboAnswer, matchCombo, recordCombo } from '../combos'
 import { deleteCombo, type Combo } from '../db'
 import Budget from '../components/Budget'
@@ -26,6 +27,8 @@ export default function Today({
   const [photo, setPhoto] = useState<Blob>()
   const [draft, setDraft] = useState<{ first: Turn; before?: Turn[] }>()
   const [toast, setToast] = useState('')
+  // 记住了食物：屏幕中间弹一个大提示，点「好」才关
+  const [notice, setNotice] = useState<{ saved: boolean; foods: Per100[] }>()
   const [editCombos, setEditCombos] = useState(false)
   const timer = useRef(0)
   const area = useRef<HTMLTextAreaElement>(null)
@@ -114,13 +117,14 @@ export default function Today({
     if (confirm(`删掉套餐「${c.name}」？已经记下的饭不受影响。`)) deleteCombo(c.id)
   }
 
-  const draftDone = (saved: boolean) => {
+  const draftDone = (saved: boolean, remembered: Per100[]) => {
     setDraft(undefined)
-    if (saved) {
+    if (saved || remembered.length) {
       setText('')
       setPhoto(undefined)
-      say('已记下这一餐')
     }
+    if (remembered.length) setNotice({ saved, foods: remembered })
+    else if (saved) say('已记下这一餐')
   }
 
   return (
@@ -182,6 +186,28 @@ export default function Today({
       </p>
 
       {toast && <div className="toast">{toast}</div>}
+
+      {notice && (
+        <div className="mask center" onClick={() => setNotice(undefined)}>
+          <div className="notice" onClick={(e) => e.stopPropagation()}>
+            <div className="bigcheck">✓</div>
+            <h2>已记住{notice.foods.map((f) => `「${f.name}」`).join('')}</h2>
+            {notice.foods.map((f) => (
+              <p key={f.name}>
+                {notice.foods.length > 1 && `${f.name}：`}每 100 克 {f.per100.kcal} 千卡
+                <br />
+                {fmtNutr(f.per100)}
+              </p>
+            ))}
+            <p className="sub">
+              {notice.saved && '这一餐也记下了。'}以后说「{notice.foods[0].name} 30 克」就按这个算。在设置最下面「我的食物」里能看到、能改。
+            </p>
+            <button className="btn primary wide" onClick={() => setNotice(undefined)}>
+              好
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="composer">
         {combos.length > 0 && (

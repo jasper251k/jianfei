@@ -476,23 +476,46 @@ textarea.input {
 .remember {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
   background: var(--bg);
-  font-size: 13px;
+  font-size: 15px;
+  line-height: 1.5;
   color: var(--sub);
 }
 .remember > div {
   flex: 1;
 }
-.remember b {
+.remember .title {
+  font-size: 17px;
+  font-weight: 600;
   color: var(--text);
 }
 .remember .btn {
   flex: none;
-  background: var(--card);
-  font-size: 14px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+}
+.remember.done {
+  background: #e6f4ec;
+  color: var(--text);
+}
+.remember.done .title {
+  color: var(--down);
+}
+.remember .check {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--down);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
 }
 .foodrow {
   display: flex;
@@ -767,10 +790,52 @@ select.input {
   max-width: calc(100% - 48px);
   background: rgba(28, 28, 30, 0.9);
   color: #fff;
-  font-size: 14px;
-  padding: 10px 14px;
-  border-radius: 10px;
+  font-size: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
   z-index: 20;
+}
+
+/* ---------- 记住食物的大提示 ---------- */
+.mask.center {
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.notice {
+  width: 100%;
+  max-width: 360px;
+  background: var(--card);
+  border-radius: 18px;
+  padding: 26px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+}
+.bigcheck {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 4px;
+  border-radius: 50%;
+  background: var(--down);
+  color: #fff;
+  font-size: 36px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.notice h2 {
+  font-size: 21px;
+}
+.notice p {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.6;
+}
+.notice p.sub {
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 /* ---------- 日历 ---------- */

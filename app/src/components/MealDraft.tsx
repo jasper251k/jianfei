@@ -9,6 +9,7 @@ import { fmtNutr } from '../nutr'
 
 // 豆包估算结果：先确认、可修改、可回一句话重新算，点「记录」才存
 // before：在套餐基础上改时，先放一轮「套餐 + 它的明细」当豆包上一次的回答
+// onDone 带上这次记住的食物，今天页弹大提示；只说「记住」没吃东西时，记住后直接关掉
 export default function MealDraft({
   settings,
   first,
@@ -18,7 +19,7 @@ export default function MealDraft({
   settings?: Settings
   first: Turn
   before?: Turn[]
-  onDone: (saved: boolean) => void
+  onDone: (saved: boolean, remembered: Per100[]) => void
 }) {
   const [turns, setTurns] = useState<Turn[]>([...before, first])
   const [items, setItems] = useState<Item[]>([])
@@ -26,9 +27,9 @@ export default function MealDraft({
   // 豆包从话里听出的日期和钟点（「早上忘记记了」→ 今天 08:00）
   const [day, setDay] = useState(0)
   const [time, setTime] = useState('')
-  // 这次报的每 100 克营养，可以记住；remembered 是点过「记住」的名字
+  // 这次报的每 100 克营养，可以记住；remembered 是已经记住的
   const [per100, setPer100] = useState<Per100[]>([])
-  const [remembered, setRemembered] = useState<string[]>([])
+  const [remembered, setRemembered] = useState<Per100[]>([])
   const foods = useLiveQuery(() => db.foods.toArray())
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -51,7 +52,9 @@ export default function MealDraft({
       // 说了「记住这个」的直接存，不用再点按钮
       const auto = r.per100.filter((f) => f.remember)
       for (const f of auto) await rememberFood(f.name, f.per100)
-      if (auto.length) setRemembered((xs) => [...xs, ...auto.map((f) => f.name)])
+      // 只是让记住、没吃东西：不停在「这一餐」上
+      if (auto.length && !r.items.length) return onDone(false, [...remembered, ...auto])
+      if (auto.length) setRemembered((xs) => [...xs, ...auto])
       setFix('')
     } catch (e) {
       setError((e as Error).message)
@@ -107,7 +110,7 @@ export default function MealDraft({
       note,
       createdAt: Date.now(),
     })
-    onDone(true)
+    onDone(true, remembered)
   }
 
   const total = sumNutr(items)
@@ -172,23 +175,36 @@ export default function MealDraft({
 
         {!busy &&
           per100.map((f) => {
-            const done = remembered.includes(f.name)
+            const done = remembered.some((x) => x.name === f.name)
             // 早就记住、数也一样的不再问
             if (!done && known(foods ?? [], f.name, f.per100)) return null
-            return (
+            return done ? (
+              <div className="remember done" key={f.name}>
+                <span className="check">✓</span>
+                <div>
+                  <div className="title">已记住「{f.name}」</div>
+                  每 100 克 {f.per100.kcal} 千卡
+                  <br />
+                  {fmtNutr(f.per100)}
+                </div>
+              </div>
+            ) : (
               <div className="remember" key={f.name}>
                 <div>
-                  <b>{f.name}</b> 每 100 克 {f.per100.kcal} 千卡 · {fmtNutr(f.per100)}
+                  <div className="title">{f.name}</div>
+                  每 100 克 {f.per100.kcal} 千卡
+                  <br />
+                  {fmtNutr(f.per100)}
                 </div>
                 <button
                   className="btn"
-                  disabled={done}
                   onClick={async () => {
                     await rememberFood(f.name, f.per100)
-                    setRemembered((xs) => [...xs, f.name])
+                    if (!items.length) onDone(false, [...remembered, f])
+                    else setRemembered((xs) => [...xs, f])
                   }}
                 >
-                  {done ? '已记住 ✓' : '记住这个食物'}
+                  记住它
                 </button>
               </div>
             )
@@ -210,7 +226,7 @@ export default function MealDraft({
         )}
 
         <div className="actions">
-          <button className="btn" onClick={() => onDone(false)}>
+          <button className="btn" onClick={() => onDone(false, remembered)}>
             取消
           </button>
           <span className="spacer" />
@@ -219,15 +235,9 @@ export default function MealDraft({
               重试
             </button>
           )}
-          {!busy && !items.length && remembered.length ? (
-            <button className="btn primary" onClick={() => onDone(false)}>
-              完成
-            </button>
-          ) : (
-            <button className="btn primary" disabled={busy || !items.length} onClick={save}>
-              记录
-            </button>
-          )}
+          <button className="btn primary" disabled={busy || !items.length} onClick={save}>
+            记录
+          </button>
         </div>
       </div>
     </div>
