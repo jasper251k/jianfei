@@ -13,7 +13,7 @@ const HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type',
   'Content-Type': 'application/json; charset=utf-8',
 }
-const COLLECTIONS = ['families', 'devices', 'members', 'weights', 'meals']
+const COLLECTIONS = ['families', 'devices', 'members', 'weights', 'meals', 'combos', 'foods']
 
 const reply = (status, data) => ({ statusCode: status, headers: HEADERS, body: JSON.stringify(data) })
 class Bad extends Error {}
@@ -79,21 +79,50 @@ function cleanMember(m) {
   return out
 }
 
+const cleanItems = (items) =>
+  (Array.isArray(items) ? items : []).slice(0, 30).map((i) => ({
+    name: str(i && i.name, 40),
+    grams: i && typeof i.grams === 'number' ? i.grams : null,
+    raw: i && typeof i.raw === 'boolean' ? i.raw : null,
+    nutr: nutr(i && i.nutr),
+  }))
+
 function cleanMeal(m) {
   if (!m || typeof m.id !== 'string' || !isDate(m.date)) bad('饮食记录格式不对')
   return {
     id: str(m.id, 40),
     date: m.date,
     time: str(m.time, 5),
-    items: (Array.isArray(m.items) ? m.items : []).slice(0, 30).map((i) => ({
-      name: str(i && i.name, 40),
-      grams: i && typeof i.grams === 'number' ? i.grams : null,
-      raw: i && typeof i.raw === 'boolean' ? i.raw : null,
-      nutr: nutr(i && i.nutr),
-    })),
+    items: cleanItems(m.items),
     input: str(m.input, 500),
     note: str(m.note, 500),
     createdAt: num(m.createdAt),
+  }
+}
+
+// 套餐：常吃的一餐
+function cleanCombo(c) {
+  if (!c || typeof c.id !== 'string') bad('套餐格式不对')
+  return { id: str(c.id, 40), name: str(c.name, 12), items: cleanItems(c.items), note: str(c.note, 500), createdAt: num(c.createdAt) }
+}
+
+// 我的食物：每 100 克的营养
+function cleanFood(f) {
+  if (!f || typeof f.id !== 'string') bad('食物格式不对')
+  return { id: str(f.id, 40), name: str(f.name, 20), per100: nutr(f.per100), createdAt: num(f.createdAt) }
+}
+
+// 按 id 覆盖写入 / 删除一组自己的记录（饮食、套餐、食物）
+async function upsert(coll, key, list, clean) {
+  for (const raw of (Array.isArray(list) ? list : []).slice(0, 2000)) {
+    const x = clean(raw)
+    const r = await db.collection(coll).where({ ...key, id: x.id }).update({ ...x, updatedAt: Date.now() })
+    if (!r.updated) await db.collection(coll).add({ ...key, ...x, updatedAt: Date.now() })
+  }
+}
+async function removeIds(coll, key, ids) {
+  for (const id of (Array.isArray(ids) ? ids : []).filter((x) => typeof x === 'string')) {
+    await db.collection(coll).where({ ...key, id }).remove()
   }
 }
 
@@ -239,26 +268,29 @@ const action = {
     for (const date of (Array.isArray(p.deletedWeights) ? p.deletedWeights : []).filter(isDate)) {
       await db.collection('weights').where({ ...key, date }).remove()
     }
-    for (const raw of (Array.isArray(p.meals) ? p.meals : []).slice(0, 2000)) {
-      const m = cleanMeal(raw)
-      const r = await db.collection('meals').where({ ...key, id: m.id }).update({ ...m, updatedAt: Date.now() })
-      if (!r.updated) await db.collection('meals').add({ ...key, ...m, updatedAt: Date.now() })
-    }
-    for (const id of (Array.isArray(p.deletedMeals) ? p.deletedMeals : []).filter((x) => typeof x === 'string')) {
-      await db.collection('meals').where({ ...key, id }).remove()
-    }
+    await upsert('meals', key, p.meals, cleanMeal)
+    await removeIds('meals', key, p.deletedMeals)
+    await upsert('combos', key, p.combos, cleanCombo)
+    await removeIds('combos', key, p.deletedCombos)
+    await upsert('foods', key, p.foods, cleanFood)
+    await removeIds('foods', key, p.deletedFoods)
     return { ok: true }
   },
 
-  // 拉全家的数据：体重全部，饮食只要 since 之后的日期（默认最近 60 天）
+  // 拉全家的数据：体重全部，饮食只要 since 之后的日期（默认最近 60 天）；套餐、食物只拉自己的
   async pull(device, p) {
     const d = await me(device)
     const since = isDate(p.since) ? p.since : ''
     const weights = await getAll('weights', { familyId: d.familyId })
     const meals = await getAll('meals', since ? { familyId: d.familyId, date: _.gte(since) } : { familyId: d.familyId })
+    const mine = { familyId: d.familyId, memberId: d.memberId }
+    const combos = await getAll('combos', mine)
+    const foods = await getAll('foods', mine)
     const info = await whoami(device)
     return {
       ...info,
+      combos: combos.map((c) => ({ id: c.id, name: c.name, items: c.items, note: c.note, createdAt: c.createdAt })),
+      foods: foods.map((f) => ({ id: f.id, name: f.name, per100: f.per100, createdAt: f.createdAt })),
       weights: weights.map((w) => ({ memberId: w.memberId, date: w.date, kg: w.kg })),
       meals: meals.map((m) => ({ memberId: m.memberId, id: m.id, date: m.date, time: m.time, items: m.items, input: m.input, note: m.note, createdAt: m.createdAt })),
     }

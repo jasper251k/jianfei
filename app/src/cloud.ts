@@ -1,4 +1,4 @@
-import type { Item, Nutr } from './db'
+import type { Combo, Food, Item, Nutr } from './db'
 import type { Profile } from './target'
 
 // 云函数 api 的 HTTP 地址（腾讯云开发，见 cloud/functions/api）
@@ -34,7 +34,8 @@ export type CloudMeal = {
   note?: string
   createdAt: number
 }
-export type Pulled = Who & { weights: CloudWeight[]; meals: CloudMeal[] }
+// combos、foods 只有自己的
+export type Pulled = Who & { weights: CloudWeight[]; meals: CloudMeal[]; combos?: Combo[]; foods?: Food[] }
 
 async function call<T>(action: string, data: unknown = {}): Promise<T> {
   let res: Response
@@ -73,6 +74,10 @@ export const cloud = {
     deletedWeights?: string[]
     meals?: Omit<CloudMeal, 'memberId'>[]
     deletedMeals?: string[]
+    combos?: Combo[]
+    deletedCombos?: string[]
+    foods?: Food[]
+    deletedFoods?: string[]
   }) => call<{ ok: true }>('push', d),
   pull: (since?: string) => call<Pulled>('pull', { since }),
 }

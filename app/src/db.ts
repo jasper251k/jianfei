@@ -26,14 +26,14 @@ export type Meal = {
 // 加入家庭后 arkKey / model 用家庭共用的那份，profile / custom 也会同步到云端
 export type Settings = { key: 'app'; arkKey: string; model: string; profile?: Profile; custom?: Nutr }
 
-// 常吃的一餐存成套餐，说「还是套餐一」就照着记；只存在这台手机上
+// 常吃的一餐存成套餐，说「还是套餐一」就照着记；加入家庭后同步到云端（只有自己能看到）
 export type Combo = { id: string; name: string; items: Item[]; note?: string; createdAt: number }
 
-// 我的食物：加工食品等，记住每 100 克的营养，以后估算按这个算；只存在这台手机上
+// 我的食物：加工食品等，记住每 100 克的营养，以后估算按这个算；加入家庭后同步到云端（只有自己能看到）
 export type Food = { id: string; name: string; per100: Nutr; createdAt: number }
 
-// 还没传上云的改动：kind + 体重日期 / 饮食 id；deleted = 删掉了
-export type Pending = { key: string; kind: 'weight' | 'meal'; ref: string; deleted: boolean }
+// 还没传上云的改动：kind + 体重日期 / 饮食、套餐、食物的 id；deleted = 删掉了
+export type Pending = { key: string; kind: 'weight' | 'meal' | 'combo' | 'food'; ref: string; deleted: boolean }
 
 // 加入的家庭（只有一条）
 export type FamilyInfo = { key: 'family'; familyId: string; code: string; memberId: string; members: Member[]; pulledAt?: number }
@@ -137,6 +137,38 @@ export async function deleteMeal(id: string) {
   await db.transaction('rw', db.meals, db.pending, async () => {
     await db.meals.delete(id)
     await mark('meal', id, true)
+  })
+  kick()
+}
+
+export async function putCombo(c: Combo) {
+  await db.transaction('rw', db.combos, db.pending, async () => {
+    await db.combos.put(c)
+    await mark('combo', c.id, false)
+  })
+  kick()
+}
+
+export async function deleteCombo(id: string) {
+  await db.transaction('rw', db.combos, db.pending, async () => {
+    await db.combos.delete(id)
+    await mark('combo', id, true)
+  })
+  kick()
+}
+
+export async function putFood(f: Food) {
+  await db.transaction('rw', db.foods, db.pending, async () => {
+    await db.foods.put(f)
+    await mark('food', f.id, false)
+  })
+  kick()
+}
+
+export async function deleteFood(id: string) {
+  await db.transaction('rw', db.foods, db.pending, async () => {
+    await db.foods.delete(id)
+    await mark('food', id, true)
   })
   kick()
 }

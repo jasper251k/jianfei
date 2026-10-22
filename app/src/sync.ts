@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { cloud, type Who } from './cloud'
-import { db, setOnChange, type FamilyInfo } from './db'
+import { db, setOnChange, type Combo, type FamilyInfo, type Food } from './db'
 import { addDays, today } from './date'
 
 // 同步：自己的改动先存手机（pending 表），联网后上传；家人的数据定期整份拉下来。
@@ -60,24 +60,41 @@ async function upload() {
   const deletedWeights: string[] = []
   const meals = []
   const deletedMeals: string[] = []
+  const combos: Combo[] = []
+  const deletedCombos: string[] = []
+  const foods: Food[] = []
+  const deletedFoods: string[] = []
   for (const p of pend) {
     if (p.kind === 'weight') {
       const w = !p.deleted && (await db.weights.get(p.ref))
       if (w) weights.push({ date: w.date, kg: w.kg })
       else deletedWeights.push(p.ref)
-    } else {
+    } else if (p.kind === 'meal') {
       const m = !p.deleted && (await db.meals.get(p.ref))
       if (m) meals.push({ id: m.id, date: m.date, time: m.time, items: m.items, input: m.input, note: m.note, createdAt: m.createdAt })
       else deletedMeals.push(p.ref)
+    } else if (p.kind === 'combo') {
+      const c = !p.deleted && (await db.combos.get(p.ref))
+      if (c) combos.push(c)
+      else deletedCombos.push(p.ref)
+    } else {
+      const f = !p.deleted && (await db.foods.get(p.ref))
+      if (f) foods.push(f)
+      else deletedFoods.push(p.ref)
     }
   }
   // 分批传，一次别太大
-  for (let i = 0; i < Math.max(weights.length, meals.length, deletedWeights.length, deletedMeals.length); i += 200) {
+  const lists = [weights, deletedWeights, meals, deletedMeals, combos, deletedCombos, foods, deletedFoods]
+  for (let i = 0; i < Math.max(...lists.map((l) => l.length)); i += 200) {
     await cloud.push({
       weights: weights.slice(i, i + 200),
       deletedWeights: deletedWeights.slice(i, i + 200),
       meals: meals.slice(i, i + 200),
       deletedMeals: deletedMeals.slice(i, i + 200),
+      combos: combos.slice(i, i + 200),
+      deletedCombos: deletedCombos.slice(i, i + 200),
+      foods: foods.slice(i, i + 200),
+      deletedFoods: deletedFoods.slice(i, i + 200),
     })
   }
   // 上传期间又有新改动的不删，下次再传
@@ -97,7 +114,7 @@ async function download() {
   if (!r.family || !r.memberId) return
   const others = (x: { memberId: string }) => x.memberId !== r.memberId
   const mine = (x: { memberId: string }) => x.memberId === r.memberId
-  await db.transaction('rw', [db.familyWeights, db.familyMeals, db.family, db.weights, db.meals, db.pending], async () => {
+  await db.transaction('rw', [db.familyWeights, db.familyMeals, db.family, db.weights, db.meals, db.combos, db.foods, db.pending], async () => {
     await db.familyWeights.clear()
     await db.familyWeights.bulkPut(r.weights.filter(others).map((w) => ({ ...w, key: `${w.memberId}:${w.date}` })))
     await db.familyMeals.clear()
@@ -109,6 +126,8 @@ async function download() {
       if (!pend.has(`weight:${w.date}`) && !(await db.weights.get(w.date))) await db.weights.add({ date: w.date, kg: w.kg })
     for (const { memberId: _, ...m } of r.meals.filter(mine))
       if (!pend.has(`meal:${m.id}`) && !(await db.meals.get(m.id))) await db.meals.add({ ...m, owner: 'me' })
+    for (const c of r.combos ?? []) if (!pend.has(`combo:${c.id}`) && !(await db.combos.get(c.id))) await db.combos.add(c)
+    for (const f of r.foods ?? []) if (!pend.has(`food:${f.id}`) && !(await db.foods.get(f.id))) await db.foods.add(f)
   })
 }
 
@@ -138,10 +157,12 @@ export async function syncNow() {
 
 // 第一次创建 / 加入家庭时，把手机上已有的记录全部标成待上传
 export async function markAllPending() {
-  const [ws, ms] = await Promise.all([db.weights.toArray(), db.meals.toArray()])
+  const [ws, ms, cs, fs] = await Promise.all([db.weights.toArray(), db.meals.toArray(), db.combos.toArray(), db.foods.toArray()])
   await db.pending.bulkPut([
     ...ws.map((w) => ({ key: `weight:${w.date}`, kind: 'weight' as const, ref: w.date, deleted: false })),
     ...ms.map((m) => ({ key: `meal:${m.id}`, kind: 'meal' as const, ref: m.id, deleted: false })),
+    ...cs.map((c) => ({ key: `combo:${c.id}`, kind: 'combo' as const, ref: c.id, deleted: false })),
+    ...fs.map((f) => ({ key: `food:${f.id}`, kind: 'food' as const, ref: f.id, deleted: false })),
   ])
 }
 

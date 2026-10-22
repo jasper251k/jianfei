@@ -1,4 +1,4 @@
-import { addMeal, db, newId, type Combo, type Item } from './db'
+import { addMeal, db, newId, putCombo, type Combo, type Item } from './db'
 import { hm, today } from './date'
 
 const CN = '零一二三四五六七八九'
@@ -38,7 +38,7 @@ export async function nextName() {
 export async function saveCombo(name: string, items: Item[], note?: string) {
   const all = await db.combos.toArray()
   if (all.some((c) => norm(c.name) === norm(name))) throw new Error(`已经有叫「${name}」的套餐了`)
-  await db.combos.add({ id: newId(), name, items, note, createdAt: Date.now() })
+  await putCombo({ id: newId(), name, items, note, createdAt: Date.now() })
 }
 
 // 照套餐记一餐

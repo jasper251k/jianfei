@@ -7,7 +7,7 @@ import { compress, useBlobUrl } from '../photos'
 import { dailyTarget } from '../target'
 import type { Turn } from '../ai'
 import { comboAnswer, matchCombo, recordCombo } from '../combos'
-import type { Combo } from '../db'
+import { deleteCombo, type Combo } from '../db'
 import Budget from '../components/Budget'
 import Diff from '../components/Diff'
 import MealCard from '../components/MealCard'
@@ -111,7 +111,7 @@ export default function Today({
   }
 
   const removeCombo = (c: Combo) => {
-    if (confirm(`删掉套餐「${c.name}」？已经记下的饭不受影响。`)) db.combos.delete(c.id)
+    if (confirm(`删掉套餐「${c.name}」？已经记下的饭不受影响。`)) deleteCombo(c.id)
   }
 
   const draftDone = (saved: boolean) => {

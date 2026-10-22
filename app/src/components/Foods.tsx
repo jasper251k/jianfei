@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type Food, type Nutr } from '../db'
+import { db, deleteFood, putFood, type Food, type Nutr } from '../db'
 import { fmtNutr } from '../nutr'
 
 const FIELDS: [keyof Nutr, string][] = [
@@ -46,7 +46,7 @@ export default function Foods() {
                 className="btn danger"
                 onClick={() => {
                   if (confirm(`删掉「${f.name}」？已经记下的饭不受影响。`)) {
-                    db.foods.delete(f.id)
+                    deleteFood(f.id)
                     setEdit(undefined)
                   }
                 }}
@@ -61,7 +61,7 @@ export default function Foods() {
                 className="btn primary"
                 disabled={!edit.name.trim()}
                 onClick={async () => {
-                  await db.foods.put({ ...edit, name: edit.name.trim() })
+                  await putFood({ ...edit, name: edit.name.trim() })
                   setEdit(undefined)
                 }}
               >
