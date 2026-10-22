@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { db, type Nutr, type Settings as S } from '../db'
+import { db, putWeights, type Nutr, type Settings as S } from '../db'
 import { ACTIVITY, GOALS, recommend, type Profile, type Sex } from '../target'
 import { fmtKg } from '../weights'
+import { today } from '../date'
 import { cloud } from '../cloud'
 import { saveWho, syncNow } from '../sync'
 
@@ -66,6 +67,8 @@ export default function Settings({
       setSaving(false)
     }
     await db.settings.put(next)
+    // 还没记过体重时，这里填的体重记成今天的晨起体重，不然关掉就丢了
+    if (!latestKg && kg >= 30 && kg <= 200) await putWeights([{ date: today(), kg: Math.round(kg * 10) / 10 }])
     if (inFamily) syncNow()
     onClose()
   }

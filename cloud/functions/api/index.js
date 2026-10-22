@@ -199,7 +199,10 @@ const action = {
   // 改自己的名字、头像、身体数据和目标
   async updateMe(device, p) {
     const d = await me(device)
-    await db.collection('members').where({ familyId: d.familyId, memberId: d.memberId }).update(cleanMember(p))
+    const m = cleanMember(p)
+    // 身体数据、目标整份替换；直接给对象会按字段合并，原来是 null 时数据库报错
+    for (const k of ['profile', 'custom']) if (m[k]) m[k] = _.set(m[k])
+    await db.collection('members').where({ familyId: d.familyId, memberId: d.memberId }).update(m)
     return whoami(device)
   },
 

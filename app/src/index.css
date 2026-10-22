@@ -455,28 +455,28 @@ textarea.input {
   gap: 8px;
 }
 
-/* ---------- 热量额度 ---------- */
+/* ---------- 热量额度（不叫 .bar：会和今天页底部输入栏 .composer .bar 撞名） ---------- */
 .eaten b.over {
   color: var(--up);
 }
-.bar {
+.meter {
   flex: 1;
   height: 6px;
   border-radius: 3px;
   background: #ebebe9;
   overflow: hidden;
 }
-.bar.big {
+.meter.big {
   height: 16px;
   border-radius: 8px;
   margin: 8px 0 6px;
 }
-.bar .fill {
+.meter .fill {
   height: 100%;
   border-radius: inherit;
   background: var(--accent);
 }
-.bar .fill.over {
+.meter .fill.over {
   background: var(--up);
 }
 .macros {

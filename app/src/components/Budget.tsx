@@ -57,7 +57,7 @@ function Bar({ value, max, big }: { value: number; max: number; big?: boolean })
   const ratio = max > 0 ? value / max : 0
   return (
     <div
-      className={`bar${big ? ' big' : ''}`}
+      className={`meter${big ? ' big' : ''}`}
       role="progressbar"
       aria-valuenow={Math.round(value)}
       aria-valuemax={Math.round(max)}
