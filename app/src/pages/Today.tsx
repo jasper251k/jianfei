@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, sumNutr, type Settings, type Weight } from '../db'
+import { db, putWeights, sumNutr, type Settings, type Weight } from '../db'
 import { addDays, md, today } from '../date'
 import { avg7, fmtDiff, fmtKg, parseWeights, prevOf } from '../weights'
 import { compress, useBlobUrl } from '../photos'
@@ -76,7 +76,7 @@ export default function Today({
       return
     }
     const old = await db.weights.bulkGet(ws.map((w) => w.date))
-    await db.weights.bulkPut(ws)
+    await putWeights(ws)
     setText('')
     if (ws.length === 1) {
       const w = ws[0]

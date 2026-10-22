@@ -2,14 +2,18 @@ import { useState } from 'react'
 import { db, type Nutr, type Settings as S } from '../db'
 import { ACTIVITY, GOALS, recommend, type Profile, type Sex } from '../target'
 import { fmtKg } from '../weights'
+import { cloud } from '../cloud'
+import { saveWho, syncNow } from '../sync'
 
 export default function Settings({
   settings,
   latestKg,
+  inFamily,
   onClose,
 }: {
   settings?: S
   latestKg?: number
+  inFamily: boolean
   onClose: () => void
 }) {
   const [arkKey, setArkKey] = useState(settings?.arkKey ?? '')
@@ -35,14 +39,34 @@ export default function Settings({
   const setField = (k: keyof Nutr, v: number) =>
     setCustom({ ...(custom ?? rec?.target ?? { kcal: 0, protein: 0, carbs: 0, fat: 0 }), [k]: v })
 
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
   const save = async () => {
-    await db.settings.put({
-      key: 'app',
+    const next = {
+      key: 'app' as const,
       arkKey: arkKey.trim(),
       model: model.trim(),
       profile,
       custom: useCustom ? (custom ?? rec?.target) : undefined,
-    })
+    }
+    // 加入了家庭：身体数据和目标存到自己的成员资料，豆包设置全家共用
+    if (inFamily) {
+      setSaving(true)
+      setError('')
+      try {
+        await cloud.updateMe({ profile: next.profile ?? null, custom: next.custom ?? null })
+        if (next.arkKey !== (settings?.arkKey ?? '') || next.model !== (settings?.model ?? ''))
+          await saveWho(await cloud.updateFamily({ arkKey: next.arkKey, model: next.model }))
+      } catch (e) {
+        setError((e as Error).message)
+        setSaving(false)
+        return
+      }
+      setSaving(false)
+    }
+    await db.settings.put(next)
+    if (inFamily) syncNow()
     onClose()
   }
 
@@ -183,12 +207,13 @@ export default function Settings({
         </label>
         <p className="hint">
           在 console.volcengine.com/ark 的「API Key 管理」创建 Key，「模型广场」里点开已开通的模型能看到模型 ID。Key
-          只存在这台手机上。
+          {inFamily ? '全家共用这一个 Key，费用算在你的火山引擎账号上。' : '只存在这台手机上。'}
         </p>
       </section>
 
-      <button className="btn primary wide" onClick={save}>
-        保存
+      {error && <p className="error">{error}</p>}
+      <button className="btn primary wide" disabled={saving} onClick={save}>
+        {saving ? '保存中…' : '保存'}
       </button>
     </div>
   )

@@ -46,7 +46,8 @@ export default function WeightChart({ weights, from, to }: { weights: Weight[]; 
   for (let t = lo; t <= hi + 1e-9; t += step) ticks.push(Math.round(t * 10) / 10)
 
   // 横轴标 3～4 个日期
-  const xTicks = [0, 1 / 3, 2 / 3, 1].map((f) => addDays(from, Math.round(span * f)))
+  // 横轴标 3～4 个日期，天数少时去掉重复的
+  const xTicks = [...new Set([0, 1 / 3, 2 / 3, 1].map((f) => addDays(from, Math.round(span * f))))]
 
   const avgPath = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.date).toFixed(1)},${y(p.avg).toFixed(1)}`).join('')
 

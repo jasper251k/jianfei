@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { Profile } from './target'
+import type { CloudMeal, CloudWeight, Member } from './cloud'
 
 // date: YYYY-MM-DD（本地日期），一天一条晨起体重
 export type Weight = { date: string; kg: number }
@@ -7,27 +8,38 @@ export type Weight = { date: string; kg: number }
 export type Nutr = { kcal: number; protein: number; carbs: number; fat: number }
 
 // grams 是估算时按的重量；raw = 生重（肉类等），false = 熟重
-export type Item = { name: string; grams?: number; raw?: boolean; nutr: Nutr }
+export type Item = { name: string; grams?: number | null; raw?: boolean | null; nutr: Nutr }
 
 export type Meal = {
   id: string
-  owner: string // 以后家庭版区分是谁的记录，现在都是 'me'
+  owner: string // 现在都是 'me'；家人的记录在 familyMeals 表
   date: string
   time: string // HH:MM
   items: Item[]
   input?: string // 原话
-  photo?: Blob // 压缩后的照片
+  photo?: Blob // 压缩后的照片，只存在拍照的手机上
   note?: string // 豆包写的假设
   createdAt: number
 }
 
 // custom: 自己改过的每日目标；没有就按 profile 和最近体重算
+// 加入家庭后 arkKey / model 用家庭共用的那份，profile / custom 也会同步到云端
 export type Settings = { key: 'app'; arkKey: string; model: string; profile?: Profile; custom?: Nutr }
+
+// 还没传上云的改动：kind + 体重日期 / 饮食 id；deleted = 删掉了
+export type Pending = { key: string; kind: 'weight' | 'meal'; ref: string; deleted: boolean }
+
+// 加入的家庭（只有一条）
+export type FamilyInfo = { key: 'family'; familyId: string; code: string; memberId: string; members: Member[]; pulledAt?: number }
 
 export const db = new Dexie('jianfei') as Dexie & {
   weights: EntityTable<Weight, 'date'>
   meals: EntityTable<Meal, 'id'>
   settings: EntityTable<Settings, 'key'>
+  pending: EntityTable<Pending, 'key'>
+  family: EntityTable<FamilyInfo, 'key'>
+  familyWeights: EntityTable<CloudWeight & { key: string }, 'key'>
+  familyMeals: EntityTable<CloudMeal, 'id'>
 }
 
 db.version(1).stores({
@@ -37,6 +49,15 @@ db.version(2).stores({
   weights: 'date',
   meals: 'id, date',
   settings: 'key',
+})
+db.version(3).stores({
+  weights: 'date',
+  meals: 'id, date',
+  settings: 'key',
+  pending: 'key',
+  family: 'key',
+  familyWeights: 'key, memberId',
+  familyMeals: 'id, memberId, date',
 })
 
 export const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
@@ -53,3 +74,45 @@ export const sumNutr = (items: { nutr: Nutr }[]): Nutr =>
     }),
     ZERO,
   )
+
+// ---------- 改自己的记录：都走这里，顺便记下要上传 ----------
+
+const mark = (kind: Pending['kind'], ref: string, deleted: boolean) =>
+  db.pending.put({ key: `${kind}:${ref}`, kind, ref, deleted })
+
+export async function putWeights(ws: Weight[]) {
+  await db.transaction('rw', db.weights, db.pending, async () => {
+    await db.weights.bulkPut(ws)
+    for (const w of ws) await mark('weight', w.date, false)
+  })
+  kick()
+}
+
+export async function deleteWeight(date: string) {
+  await db.transaction('rw', db.weights, db.pending, async () => {
+    await db.weights.delete(date)
+    await mark('weight', date, true)
+  })
+  kick()
+}
+
+export async function addMeal(m: Meal) {
+  await db.transaction('rw', db.meals, db.pending, async () => {
+    await db.meals.add(m)
+    await mark('meal', m.id, false)
+  })
+  kick()
+}
+
+export async function deleteMeal(id: string) {
+  await db.transaction('rw', db.meals, db.pending, async () => {
+    await db.meals.delete(id)
+    await mark('meal', id, true)
+  })
+  kick()
+}
+
+// 有改动时通知同步模块（sync.ts 注册），避免循环引用
+let onChange = () => {}
+export const setOnChange = (fn: () => void) => (onChange = fn)
+const kick = () => onChange()

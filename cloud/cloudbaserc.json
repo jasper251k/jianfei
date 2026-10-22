@@ -1,1 +1,8 @@
-{ "envId": "jaspercloud-d8ghkbza1c53ca352", "region": "ap-shanghai", "functionRoot": "./functions", "functions": [] }
+{
+  "envId": "jaspercloud-d8ghkbza1c53ca352",
+  "region": "ap-shanghai",
+  "functionRoot": "./functions",
+  "functions": [
+    { "name": "api", "runtime": "Nodejs18.15", "handler": "index.main", "timeout": 20, "memorySize": 256, "installDependency": true }
+  ]
+}

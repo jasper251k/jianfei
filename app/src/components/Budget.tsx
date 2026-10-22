@@ -7,14 +7,14 @@ const MACROS: [keyof Nutr, string][] = [
 ]
 
 // 今天的热量额度：一根大条看总热量，三根细条看三大营养素
-export default function Budget({ eaten, target }: { eaten: Nutr; target?: Nutr }) {
+export default function Budget({ eaten, target, hint = true }: { eaten: Nutr; target?: Nutr; hint?: boolean }) {
   if (!target)
     return (
       <>
         <div className="eaten">
           已吃 <b>{Math.round(eaten.kcal)}</b> 千卡
         </div>
-        <p className="hint">去右上角设置里填身高、年龄和目标，就能算出每天能吃多少。</p>
+        {hint && <p className="hint">去右上角设置里填身高、年龄和目标，就能算出每天能吃多少。</p>}
       </>
     )
 

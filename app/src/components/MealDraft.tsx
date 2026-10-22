@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { db, newId, sumNutr, type Item, type Settings } from '../db'
+import { addMeal, newId, sumNutr, type Item, type Settings } from '../db'
 import { estimate, type Turn } from '../ai'
 import { today } from '../date'
 import { useBlobUrl } from '../photos'
@@ -74,7 +74,7 @@ export default function MealDraft({
 
   const save = async () => {
     const d = new Date()
-    await db.meals.add({
+    await addMeal({
       id: newId(),
       owner: 'me',
       date: today(),

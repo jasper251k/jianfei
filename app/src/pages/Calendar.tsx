@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { db, type Weight } from '../db'
+import { deleteWeight, putWeights, type Weight } from '../db'
 import { addDays, md, today, weekday, ymd } from '../date'
 import { fmtKg, prevOf } from '../weights'
 import Diff from '../components/Diff'
@@ -81,11 +81,11 @@ function EditSheet({ date, weight, onClose }: { date: string; weight?: Weight; o
   const ok = val.trim() !== '' && kg >= 30 && kg <= 200
 
   const save = async () => {
-    await db.weights.put({ date, kg: Math.round(kg * 10) / 10 })
+    await putWeights([{ date, kg: Math.round(kg * 10) / 10 }])
     onClose()
   }
   const remove = async () => {
-    await db.weights.delete(date)
+    await deleteWeight(date)
     onClose()
   }
 

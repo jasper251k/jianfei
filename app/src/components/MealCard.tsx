@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { db, sumNutr, type Meal } from '../db'
+import { deleteMeal, sumNutr, type Meal } from '../db'
 import { useBlobUrl } from '../photos'
 import { fmtNutr } from '../nutr'
 
@@ -42,7 +42,7 @@ export default function MealCard({ meal }: { meal: Meal }) {
             className="btn danger"
             onClick={(e) => {
               e.stopPropagation()
-              if (confirm('删掉这一餐？')) db.meals.delete(meal.id)
+              if (confirm('删掉这一餐？')) deleteMeal(meal.id)
             }}
           >
             删除这一餐

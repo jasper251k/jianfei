@@ -13,6 +13,18 @@ export async function compress(file: Blob, maxSide = 1024, quality = 0.8): Promi
   )
 }
 
+// 头像：裁成正方形，160 像素，存成 data URL 文字（约 10KB）
+export async function avatarFrom(file: Blob): Promise<string> {
+  const img = await loadImg(file)
+  const side = Math.min(img.naturalWidth, img.naturalHeight)
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = 160
+  canvas
+    .getContext('2d')!
+    .drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 160, 160)
+  return canvas.toDataURL('image/jpeg', 0.8)
+}
+
 function loadImg(blob: Blob): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob)
