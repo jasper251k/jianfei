@@ -345,6 +345,40 @@ textarea.input {
   font-weight: 400;
   color: var(--sub);
 }
+.combos {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+.combos button {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-size: 15px;
+}
+.combos button b {
+  font-weight: 600;
+}
+.combos button span {
+  font-size: 12px;
+  color: var(--sub);
+}
+.combos .combosedit {
+  color: var(--sub);
+  font-size: 13px;
+  border-style: dashed;
+}
+.combos.editing button:not(.combosedit) {
+  border-color: var(--up);
+  color: var(--up);
+}
 .mealmore {
   margin-top: 8px;
   padding-left: 54px;

@@ -6,6 +6,8 @@ import { avg7, fmtDiff, fmtKg, parseWeights, prevOf } from '../weights'
 import { compress, useBlobUrl } from '../photos'
 import { dailyTarget } from '../target'
 import type { Turn } from '../ai'
+import { comboAnswer, matchCombo, recordCombo } from '../combos'
+import type { Combo } from '../db'
 import Budget from '../components/Budget'
 import Diff from '../components/Diff'
 import MealCard from '../components/MealCard'
@@ -22,15 +24,18 @@ export default function Today({
 }) {
   const [text, setText] = useState('')
   const [photo, setPhoto] = useState<Blob>()
-  const [draft, setDraft] = useState<Turn>()
+  const [draft, setDraft] = useState<{ first: Turn; before?: Turn[] }>()
   const [toast, setToast] = useState('')
+  const [editCombos, setEditCombos] = useState(false)
   const timer = useRef(0)
   const area = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const photoUrl = useBlobUrl(photo)
 
   const now = today()
-  const meals = useLiveQuery(() => db.meals.where('date').equals(now).sortBy('createdAt'), [now]) ?? []
+  // 按吃饭的钟点排，补记的早饭排在前面
+  const meals = useLiveQuery(() => db.meals.where('date').equals(now).sortBy('time'), [now]) ?? []
+  const combos = useLiveQuery(() => db.combos.orderBy('createdAt').toArray()) ?? []
   const eaten = sumNutr(meals.flatMap((m) => m.items))
   const mine = weights.find((w) => w.date === now)
   const prev = prevOf(weights, now)
@@ -67,12 +72,23 @@ export default function Today({
     if (!t && !photo) return
     const ws = !photo && parseWeights(t, now)
     if (!ws) {
+      // 说的是套餐：没别的要求就直接记，不花豆包的钱
+      const hit = !photo ? matchCombo(t, combos) : undefined
+      if (hit && !hit.rest) {
+        await eatCombo(hit.combo, t)
+        return
+      }
       // 不是体重就当一餐，交给豆包
       if (!settings?.arkKey || !settings.model) {
         say('先在右上角设置里填豆包的 Key 和模型 ID')
         return
       }
-      setDraft({ text: t, photo })
+      // 套餐 + 一句要求（如「还是套餐一，饭少一半」）：在套餐基础上让豆包改
+      setDraft(
+        hit
+          ? { first: { text: t }, before: [{ text: `我吃了「${hit.combo.name}」`, answer: comboAnswer(hit.combo) }] }
+          : { first: { text: t, photo } },
+      )
       return
     }
     const old = await db.weights.bulkGet(ws.map((w) => w.date))
@@ -86,6 +102,16 @@ export default function Today({
     } else {
       say(`已记下 ${ws.length} 天的体重`)
     }
+  }
+
+  const eatCombo = async (c: Combo, input: string) => {
+    await recordCombo(c, input)
+    setText('')
+    say(`已照「${c.name}」记下 ${Math.round(sumNutr(c.items).kcal)} 千卡`)
+  }
+
+  const removeCombo = (c: Combo) => {
+    if (confirm(`删掉套餐「${c.name}」？已经记下的饭不受影响。`)) db.combos.delete(c.id)
   }
 
   const draftDone = (saved: boolean) => {
@@ -139,7 +165,7 @@ export default function Today({
         {meals.length > 0 && (
           <div className="meals">
             {meals.map((m) => (
-              <MealCard key={m.id} meal={m} />
+              <MealCard key={m.id} meal={m} onSaid={say} />
             ))}
           </div>
         )}
@@ -149,11 +175,28 @@ export default function Today({
         发数字记体重，比如「84.3」；补记：「昨天 84.5」「10月9日 85」。
         <br />
         拍照或说吃了什么，豆包估热量，比如「两百克生牛肉、一碗紫米饭、一勺橄榄油」。
+        <br />
+        {combos.length
+          ? '常吃的直接说「还是套餐一」；有变化就加一句，如「还是套餐一，饭少一半」。'
+          : '常吃的一餐：记下后点开它，点「存成套餐」，以后说「还是套餐一」就行。'}
       </p>
 
       {toast && <div className="toast">{toast}</div>}
 
       <div className="composer">
+        {combos.length > 0 && (
+          <div className={`combos${editCombos ? ' editing' : ''}`}>
+            {combos.map((c) => (
+              <button key={c.id} onClick={() => (editCombos ? removeCombo(c) : eatCombo(c, c.name))}>
+                <b>{c.name}</b>
+                <span>{Math.round(sumNutr(c.items).kcal)}</span>
+              </button>
+            ))}
+            <button className="combosedit" onClick={() => setEditCombos(!editCombos)}>
+              {editCombos ? '完成' : '删套餐'}
+            </button>
+          </div>
+        )}
         {photoUrl && (
           <div className="picked">
             <img src={photoUrl} alt="" />
@@ -199,7 +242,7 @@ export default function Today({
         </div>
       </div>
 
-      {draft && <MealDraft settings={settings} first={draft} onDone={draftDone} />}
+      {draft && <MealDraft settings={settings} first={draft.first} before={draft.before} onDone={draftDone} />}
     </div>
   )
 }

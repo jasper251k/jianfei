@@ -6,6 +6,9 @@ export const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${p
 
 export const today = () => ymd(new Date())
 
+// 现在几点：HH:MM
+export const hm = (d = new Date()) => `${pad(d.getHours())}:${pad(d.getMinutes())}`
+
 export const toDate = (s: string) => {
   const [y, m, d] = s.split('-').map(Number)
   return new Date(y, m - 1, d)

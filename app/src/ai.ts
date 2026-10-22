@@ -5,19 +5,23 @@ const URL_ = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
 
 const SYSTEM = `你是营养估算助手，帮用户记录减脂饮食。用户会发一张饭菜照片、一段文字，或两者都有。
 请把这一餐拆成几样食物，估算每样的重量和营养，只输出 JSON，不要任何其他文字：
-{"items":[{"name":"米饭","grams":200,"raw":false,"kcal":232,"protein":5.2,"carbs":51,"fat":0.6}],"note":"假设说明"}
+{"items":[{"name":"米饭","grams":200,"raw":false,"kcal":232,"protein":5.2,"carbs":51,"fat":0.6}],"note":"假设说明","day":0,"time":""}
 
 规则：
-- 用户文字里给的信息（重量、做法、用油、品牌、吃了多少）优先于照片判断。
+- 用户文字里给的信息（重量、热量、做法、用油、品牌、吃了多少）优先于照片判断，用户给的数不要改。
 - 没给重量就按照片里的份量或常见一份估算。
 - raw 表示 grams 是生重（true）还是熟重（false）；肉类、米饭特别要分清。
 - 烹调用油单独列一项（name 写「烹调油」），按做法估；水煮、清蒸没加油就不列。
 - kcal 取整数，protein、carbs、fat 单位是克，保留一位小数。
+- 用户只说了大概热量也要照记，比如「早饭大概 800 卡」：列一项，name 写他说的那一餐或食物（如「早饭」），grams 填 null，kcal 用他说的数；蛋白、碳水、脂肪按他提到的食物估，没提食物就按普通一餐估（约蛋白 15%、碳水 50%、脂肪 35% 的热量），并在 note 里说明。
+- day 是这一餐哪天吃的：今天 0，昨天 -1，前天 -2；没说就是 0。
+- time 是这一餐大概几点吃的，格式 HH:MM：用户说了钟点就用他说的；只说早上 / 中午 / 下午 / 晚上 / 夜宵，就分别填 08:00 / 12:00 / 15:30 / 18:30 / 21:30；没提时间就填空字符串。
 - note 用一两句中文写出最影响准确度的假设，比如「牛肉按生重 150g、炒菜按 10g 油估」，方便用户纠正。
 - 如果用户在纠正上一次的结果，就在上一次的基础上改，没提到的保持不变。
-- 看不出是食物或信息不够，items 返回空数组，在 note 里说明需要补充什么。`
+- 只有照片里不是食物，或者既没说吃了什么、也没说热量时，items 才返回空数组，在 note 里说明需要补充什么。`
 
-export type Estimate = { items: Item[]; note: string; raw: string }
+// day：0 今天、-1 昨天……；time：HH:MM，没提就是空字符串
+export type Estimate = { items: Item[]; note: string; day: number; time: string; raw: string }
 
 // 一轮对话：第一轮是照片 / 原话，之后每轮是用户的纠正
 export type Turn = { text?: string; photo?: Blob; answer?: string }
@@ -60,10 +64,10 @@ export async function estimate(settings: Settings, turns: Turn[]): Promise<Estim
   return { ...parse(raw), raw }
 }
 
-function parse(raw: string): { items: Item[]; note: string } {
+function parse(raw: string): Omit<Estimate, 'raw'> {
   const m = raw.match(/\{[\s\S]*\}/)
   if (!m) throw new Error('豆包的回复看不懂，再试一次')
-  let obj: { items?: unknown[]; note?: unknown }
+  let obj: { items?: unknown[]; note?: unknown; day?: unknown; time?: unknown }
   try {
     obj = JSON.parse(m[0])
   } catch {
@@ -79,5 +83,7 @@ function parse(raw: string): { items: Item[]; note: string } {
       nutr: { kcal: Math.round(n(i.kcal)), protein: n(i.protein), carbs: n(i.carbs), fat: n(i.fat) },
     }
   })
-  return { items, note: String(obj.note ?? '') }
+  const day = Math.round(n(obj.day))
+  const time = typeof obj.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(obj.time) ? obj.time : ''
+  return { items, note: String(obj.note ?? ''), day: day <= 0 && day >= -6 ? day : 0, time }
 }

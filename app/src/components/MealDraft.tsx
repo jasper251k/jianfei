@@ -1,23 +1,29 @@
 import { useEffect, useRef, useState } from 'react'
 import { addMeal, newId, sumNutr, type Item, type Settings } from '../db'
 import { estimate, type Turn } from '../ai'
-import { today } from '../date'
+import { addDays, hm, md, today } from '../date'
 import { useBlobUrl } from '../photos'
 import { fmtNutr } from '../nutr'
 
 // 豆包估算结果：先确认、可修改、可回一句话重新算，点「记录」才存
+// before：在套餐基础上改时，先放一轮「套餐 + 它的明细」当豆包上一次的回答
 export default function MealDraft({
   settings,
   first,
+  before = [],
   onDone,
 }: {
   settings?: Settings
   first: Turn
+  before?: Turn[]
   onDone: (saved: boolean) => void
 }) {
-  const [turns, setTurns] = useState<Turn[]>([first])
+  const [turns, setTurns] = useState<Turn[]>([...before, first])
   const [items, setItems] = useState<Item[]>([])
   const [note, setNote] = useState('')
+  // 豆包从话里听出的日期和钟点（「早上忘记记了」→ 今天 08:00）
+  const [day, setDay] = useState(0)
+  const [time, setTime] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [fix, setFix] = useState('')
@@ -33,6 +39,8 @@ export default function MealDraft({
       setTurns(ts.map((t, i) => (i === ts.length - 1 ? { ...t, answer: r.raw } : t)))
       setItems(r.items)
       setNote(r.note)
+      setDay(r.day)
+      setTime(r.time)
       setFix('')
     } catch (e) {
       setError((e as Error).message)
@@ -73,14 +81,14 @@ export default function MealDraft({
   const remove = (i: number) => setItems((xs) => xs.filter((_, j) => j !== i))
 
   const save = async () => {
-    const d = new Date()
     await addMeal({
       id: newId(),
       owner: 'me',
-      date: today(),
-      time: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+      date: addDays(today(), day),
+      time: time || hm(),
       items,
       input: turns
+        .slice(before.length)
         .map((t) => t.text?.trim())
         .filter(Boolean)
         .join(' / '),
@@ -141,6 +149,12 @@ export default function MealDraft({
             <div className="total">
               合计 <b>{Math.round(total.kcal)}</b> 千卡 · {fmtNutr(total)}
             </div>
+            {(day !== 0 || time) && (
+              <div className="sub">
+                记在{day === 0 ? '今天' : day === -1 ? '昨天' : md(addDays(today(), day))}
+                {time && ` ${time}`}
+              </div>
+            )}
           </>
         )}
         {!busy && note && <p className="note">{note}</p>}

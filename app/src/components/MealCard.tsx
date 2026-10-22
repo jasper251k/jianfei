@@ -2,12 +2,24 @@ import { useState } from 'react'
 import { deleteMeal, sumNutr, type Meal } from '../db'
 import { useBlobUrl } from '../photos'
 import { fmtNutr } from '../nutr'
+import { nextName, saveCombo } from '../combos'
 
-// 今天页里的一餐：点开看明细和豆包的假设，可删除
-export default function MealCard({ meal }: { meal: Meal }) {
+// 今天页里的一餐：点开看明细和豆包的假设，可删除、存成套餐
+export default function MealCard({ meal, onSaid }: { meal: Meal; onSaid: (msg: string) => void }) {
   const [open, setOpen] = useState(false)
   const url = useBlobUrl(meal.photo)
   const total = sumNutr(meal.items)
+
+  const toCombo = async () => {
+    const name = prompt('给这一餐起个名字，以后说「还是套餐一」就照着记', await nextName())?.trim()
+    if (!name) return
+    try {
+      await saveCombo(name.slice(0, 12), meal.items, meal.note)
+      onSaid(`已存成「${name.slice(0, 12)}」，以后说「还是${name.slice(0, 12)}」就行`)
+    } catch (e) {
+      alert((e as Error).message)
+    }
+  }
 
   return (
     <div className="meal" onClick={() => setOpen(!open)}>
@@ -38,6 +50,15 @@ export default function MealCard({ meal }: { meal: Meal }) {
           ))}
           {meal.input && <p className="sub">你说的：{meal.input}</p>}
           {meal.note && <p className="sub">豆包的假设：{meal.note}</p>}
+          <button
+            className="btn"
+            onClick={(e) => {
+              e.stopPropagation()
+              toCombo()
+            }}
+          >
+            存成套餐
+          </button>
           <button
             className="btn danger"
             onClick={(e) => {

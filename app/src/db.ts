@@ -26,6 +26,9 @@ export type Meal = {
 // 加入家庭后 arkKey / model 用家庭共用的那份，profile / custom 也会同步到云端
 export type Settings = { key: 'app'; arkKey: string; model: string; profile?: Profile; custom?: Nutr }
 
+// 常吃的一餐存成套餐，说「还是套餐一」就照着记；只存在这台手机上
+export type Combo = { id: string; name: string; items: Item[]; note?: string; createdAt: number }
+
 // 还没传上云的改动：kind + 体重日期 / 饮食 id；deleted = 删掉了
 export type Pending = { key: string; kind: 'weight' | 'meal'; ref: string; deleted: boolean }
 
@@ -40,6 +43,7 @@ export const db = new Dexie('jianfei') as Dexie & {
   family: EntityTable<FamilyInfo, 'key'>
   familyWeights: EntityTable<CloudWeight & { key: string }, 'key'>
   familyMeals: EntityTable<CloudMeal, 'id'>
+  combos: EntityTable<Combo, 'id'>
 }
 
 db.version(1).stores({
@@ -58,6 +62,16 @@ db.version(3).stores({
   family: 'key',
   familyWeights: 'key, memberId',
   familyMeals: 'id, memberId, date',
+})
+db.version(4).stores({
+  weights: 'date',
+  meals: 'id, date',
+  settings: 'key',
+  pending: 'key',
+  family: 'key',
+  familyWeights: 'key, memberId',
+  familyMeals: 'id, memberId, date',
+  combos: 'id, createdAt',
 })
 
 export const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)

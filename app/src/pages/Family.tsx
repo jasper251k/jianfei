@@ -306,7 +306,7 @@ function MemberDetail({
     }
   }
   const all = (isMe ? mine : meals) ?? []
-  const todays = all.filter((m) => m.date === now).sort((a, b) => a.createdAt - b.createdAt)
+  const todays = all.filter((m) => m.date === now).sort((a, b) => a.time.localeCompare(b.time))
   const eaten = sumNutr(todays.flatMap((m) => m.items))
   const last = weights[weights.length - 1]
   const target = dailyTarget(
