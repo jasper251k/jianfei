@@ -1,5 +1,6 @@
 import { addMeal, db, newId, putCombo, type Combo, type Item } from './db'
 import { hm, today } from './date'
+import { asAnswer } from './ai'
 
 const CN = '零一二三四五六七八九'
 
@@ -46,8 +47,4 @@ export const recordCombo = (c: Combo, input: string) =>
   addMeal({ id: newId(), owner: 'me', date: today(), time: hm(), items: c.items, input, note: c.note, createdAt: Date.now() })
 
 // 在套餐基础上让豆包改：把套餐当成豆包上一次的回答
-export const comboAnswer = (c: Combo) =>
-  JSON.stringify({
-    items: c.items.map((i) => ({ name: i.name, grams: i.grams, raw: i.raw, ...i.nutr })),
-    note: c.note ?? '',
-  })
+export const comboAnswer = (c: Combo) => asAnswer(c.items, c.note)

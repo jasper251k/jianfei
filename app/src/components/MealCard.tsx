@@ -4,8 +4,16 @@ import { useBlobUrl } from '../photos'
 import { fmtNutr } from '../nutr'
 import { nextName, saveCombo } from '../combos'
 
-// 今天页里的一餐：点开看明细和豆包的假设，可删除、存成套餐
-export default function MealCard({ meal, onSaid }: { meal: Meal; onSaid: (msg: string) => void }) {
+// 今天页里的一餐：点开看明细和豆包的假设，可修改、删除、存成套餐
+export default function MealCard({
+  meal,
+  onSaid,
+  onEdit,
+}: {
+  meal: Meal
+  onSaid: (msg: string) => void
+  onEdit: () => void
+}) {
   const [open, setOpen] = useState(false)
   const url = useBlobUrl(meal.photo)
   const total = sumNutr(meal.items)
@@ -50,6 +58,15 @@ export default function MealCard({ meal, onSaid }: { meal: Meal; onSaid: (msg: s
           ))}
           {meal.input && <p className="sub">你说的：{meal.input}</p>}
           {meal.note && <p className="sub">豆包的假设：{meal.note}</p>}
+          <button
+            className="btn primary"
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit()
+            }}
+          >
+            修改
+          </button>
           <button
             className="btn"
             onClick={(e) => {

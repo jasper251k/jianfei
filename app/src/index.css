@@ -989,3 +989,27 @@ select.input {
   pointer-events: none;
   white-space: nowrap;
 }
+
+/* ---------- 改一餐：加一样、改钟点 ---------- */
+.additem {
+  align-self: flex-start;
+  color: var(--accent);
+  font-size: 15px;
+  padding: 4px 0;
+}
+.when {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--sub);
+}
+.when input {
+  font: inherit;
+  font-size: 16px;
+  color: var(--text);
+  border: 0;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 4px 8px;
+}

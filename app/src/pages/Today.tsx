@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, putWeights, sumNutr, type Settings, type Weight } from '../db'
+import { db, putWeights, sumNutr, type Meal, type Settings, type Weight } from '../db'
 import { addDays, md, today } from '../date'
 import { avg7, fmtDiff, fmtKg, parseWeights, prevOf } from '../weights'
 import { compress, useBlobUrl } from '../photos'
 import { dailyTarget } from '../target'
-import type { Per100, Turn } from '../ai'
+import { asAnswer, type Per100, type Turn } from '../ai'
 import { fmtNutr } from '../nutr'
 import { comboAnswer, matchCombo, recordCombo } from '../combos'
 import { deleteCombo, type Combo } from '../db'
@@ -13,6 +13,13 @@ import Budget from '../components/Budget'
 import Diff from '../components/Diff'
 import MealCard from '../components/MealCard'
 import MealDraft from '../components/MealDraft'
+
+// 已经记下的一餐当成豆包上一次的回答，改的时候接着它改
+const mealTurn = (m: Meal): Turn => ({ text: m.input, photo: m.photo, answer: asAnswer(m.items, m.note, 0, m.time) })
+
+// 说的是改刚记的那一餐，如「刚才那顿只吃了一半」「把上一餐改成 600 卡」
+const isFix = (t: string) =>
+  /刚才|刚刚|上一[顿餐]|最后一[顿餐]/.test(t) && /改|不对|错|只吃了|没吃|其实/.test(t) && !/又|再/.test(t)
 
 export default function Today({
   weights,
@@ -25,7 +32,7 @@ export default function Today({
 }) {
   const [text, setText] = useState('')
   const [photo, setPhoto] = useState<Blob>()
-  const [draft, setDraft] = useState<{ first: Turn; before?: Turn[] }>()
+  const [draft, setDraft] = useState<{ first: Turn; before?: Turn[]; meal?: Meal }>()
   const [toast, setToast] = useState('')
   // 记住了食物：屏幕中间弹一个大提示，点「好」才关
   const [notice, setNotice] = useState<{ saved: boolean; foods: Per100[] }>()
@@ -86,6 +93,12 @@ export default function Today({
         say('先在右上角设置里填豆包的 Key 和模型 ID')
         return
       }
+      // 改刚记的那一餐：在它的基础上让豆包改，不另记一餐
+      const last = !photo && isFix(t) ? meals.reduce<Meal | undefined>((a, m) => (!a || m.createdAt > a.createdAt ? m : a), undefined) : undefined
+      if (last) {
+        setDraft({ before: [mealTurn(last)], first: { text: t }, meal: last })
+        return
+      }
       // 套餐 + 一句要求（如「还是套餐一，饭少一半」）：在套餐基础上让豆包改
       setDraft(
         hit
@@ -124,7 +137,7 @@ export default function Today({
       setPhoto(undefined)
     }
     if (remembered.length) setNotice({ saved, foods: remembered })
-    else if (saved) say('已记下这一餐')
+    else if (saved) say(draft?.meal ? '改好了' : '已记下这一餐')
   }
 
   return (
@@ -169,7 +182,7 @@ export default function Today({
         {meals.length > 0 && (
           <div className="meals">
             {meals.map((m) => (
-              <MealCard key={m.id} meal={m} onSaid={say} />
+              <MealCard key={m.id} meal={m} onSaid={say} onEdit={() => setDraft({ first: mealTurn(m), meal: m })} />
             ))}
           </div>
         )}
@@ -179,6 +192,8 @@ export default function Today({
         发数字记体重，比如「84.3」；补记：「昨天 84.5」「10月9日 85」。
         <br />
         拍照或说吃了什么，豆包估热量，比如「两百克生牛肉、一碗紫米饭、一勺橄榄油」。
+        <br />
+        记错了：点开那一餐点「修改」，或直接说「刚才那顿饭只吃了一半」。
         <br />
         {combos.length
           ? '常吃的直接说「还是套餐一」；有变化就加一句，如「还是套餐一，饭少一半」。'
@@ -268,7 +283,9 @@ export default function Today({
         </div>
       </div>
 
-      {draft && <MealDraft settings={settings} first={draft.first} before={draft.before} onDone={draftDone} />}
+      {draft && (
+        <MealDraft settings={settings} first={draft.first} before={draft.before} meal={draft.meal} onDone={draftDone} />
+      )}
     </div>
   )
 }

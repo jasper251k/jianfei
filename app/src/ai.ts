@@ -32,6 +32,16 @@ export type Estimate = { items: Item[]; note: string; day: number; time: string;
 // 一轮对话：第一轮是照片 / 原话，之后每轮是用户的纠正
 export type Turn = { text?: string; photo?: Blob; answer?: string }
 
+// 把一餐写成豆包回答的样子，接着改时当作「上一次的回答」（手动改过的数也带上）
+export const asAnswer = (items: Item[], note = '', day = 0, time = '', per100: Per100[] = []) =>
+  JSON.stringify({
+    items: items.map((i) => ({ name: i.name, grams: i.grams, raw: i.raw, ...i.nutr })),
+    note,
+    day,
+    time,
+    per100: per100.map((f) => ({ name: f.name, ...f.per100, remember: false })),
+  })
+
 // 我记住的食物写成一段话，跟规则一起发给豆包
 const foodList = (foods: Food[]) =>
   '我记住的食物（每 100 克）：\n' +

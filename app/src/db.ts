@@ -133,6 +133,15 @@ export async function addMeal(m: Meal) {
   kick()
 }
 
+// 改已经记下的一餐：按 id 覆盖
+export async function putMeal(m: Meal) {
+  await db.transaction('rw', db.meals, db.pending, async () => {
+    await db.meals.put(m)
+    await mark('meal', m.id, false)
+  })
+  kick()
+}
+
 export async function deleteMeal(id: string) {
   await db.transaction('rw', db.meals, db.pending, async () => {
     await db.meals.delete(id)
