@@ -5,4 +5,6 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? '/jianfei/' : '/',
   plugins: [react()],
+  // 设置页最下面显示，看手机上是不是最新版
+  define: { __BUILD__: JSON.stringify(new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }).slice(5, -3)) },
 }))

@@ -48,7 +48,14 @@ export default function MealCard({
       {open && (
         <div className="mealmore">
           {meal.items.map((i, k) => (
-            <div className="row" key={k}>
+            <div
+              className="row tap"
+              key={k}
+              onClick={(e) => {
+                e.stopPropagation()
+                onEdit()
+              }}
+            >
               <span>
                 {i.name}
                 {i.grams ? ` ${Math.round(i.grams)}g${i.raw === true ? '生' : i.raw === false ? '熟' : ''}` : ''}

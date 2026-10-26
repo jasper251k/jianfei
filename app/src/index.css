@@ -429,46 +429,72 @@ textarea.input {
 }
 .item {
   display: grid;
-  grid-template-columns: 1fr auto auto 28px;
-  gap: 6px;
+  grid-template-columns: 1fr 32px;
+  gap: 8px;
   align-items: center;
-  padding: 8px 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--line);
 }
+/* 能改的地方做成看得出来的框 */
 .item input {
   font: inherit;
-  font-size: 16px;
-  border: 0;
-  border-bottom: 1px dashed var(--line);
-  background: none;
-  padding: 2px 0;
+  font-size: 17px;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  padding: 7px 10px;
   outline: none;
   min-width: 0;
 }
 .item input:focus {
-  border-bottom-color: var(--text);
+  border-color: var(--accent);
+  background: var(--card);
+}
+.item .nums {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .item label {
   display: flex;
-  align-items: baseline;
-  gap: 2px;
-  font-size: 12px;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
   color: var(--sub);
 }
 .item label input {
-  width: 52px;
+  width: 76px;
   text-align: right;
-  color: var(--text);
   font-variant-numeric: tabular-nums;
+}
+.rawbtn {
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 15px;
 }
 .item .x {
   color: var(--sub);
-  font-size: 18px;
+  font-size: 22px;
+  height: 36px;
 }
 .item .macro {
   grid-column: 1 / -1;
   font-size: 12px;
   color: var(--sub);
+}
+.removing {
+  margin: 0;
+  color: var(--up);
+  font-weight: 600;
+}
+.btn.primary.danger {
+  background: var(--up);
+  color: #fff;
 }
 .total {
   font-size: 14px;
@@ -1012,4 +1038,8 @@ select.input {
   background: var(--bg);
   border-radius: 8px;
   padding: 4px 8px;
+}
+
+.version {
+  text-align: center;
 }

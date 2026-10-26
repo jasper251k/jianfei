@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { addMeal, db, newId, putMeal, sumNutr, ZERO, type Item, type Meal, type Nutr, type Settings } from '../db'
+import { addMeal, db, deleteMeal, newId, putMeal, sumNutr, ZERO, type Item, type Meal, type Nutr, type Settings } from '../db'
 import { asAnswer, estimate, type Per100, type Turn } from '../ai'
 import { known, rememberFood } from '../foods'
 import { addDays, hm, md, today } from '../date'
@@ -10,21 +10,27 @@ import { fmtNutr } from '../nutr'
 // 豆包估算结果：先确认、可修改、可回一句话重新算，点「记录」才存
 // before：在套餐基础上改时，先放一轮「套餐 + 它的明细」当豆包上一次的回答
 // onDone 带上这次记住的食物，今天页弹大提示；只说「记住」没吃东西时，记住后直接关掉
-// meal：改已经记下的一餐，先填上原来的；第一轮是原来那一餐（带着答案），保存时覆盖原来那条
+// meal：点「修改」打开的，先填上原来的；第一轮是原来那一餐（带着答案），保存时覆盖原来那条
+// recent：今天、昨天已经记下的饭，发给豆包；它听出是要改或删其中一餐，就改那一餐，不另记
 export default function MealDraft({
   settings,
   first,
   before = [],
   meal,
+  recent = [],
   onDone,
 }: {
   settings?: Settings
   first: Turn
   before?: Turn[]
   meal?: Meal
-  onDone: (saved: boolean, remembered: Per100[]) => void
+  recent?: Meal[]
+  onDone: (saved: boolean, remembered: Per100[], msg?: string) => void
 }) {
   const [turns, setTurns] = useState<Turn[]>([...before, first])
+  // 要改的那一餐（点「修改」的，或豆包从话里听出来的）；removing = 要删掉它
+  const [target, setTarget] = useState<Meal | undefined>(meal)
+  const [removing, setRemoving] = useState(false)
   const [items, setItems] = useState<Item[]>(meal?.items ?? [])
   const [note, setNote] = useState(meal?.note ?? '')
   // 豆包从话里听出的日期和钟点（「早上忘记记了」→ 今天 08:00）
@@ -45,14 +51,17 @@ export default function MealDraft({
     setBusy(true)
     setError('')
     try {
-      const r = await estimate(settings ?? { key: 'app', arkKey: '', model: '' }, ts, await db.foods.toArray())
+      const r = await estimate(settings ?? { key: 'app', arkKey: '', model: '' }, ts, await db.foods.toArray(), recent)
+      const t = r.edit ? recent[r.edit - 1] : meal
+      setTarget(t)
+      setRemoving(r.remove)
       // 把豆包的回答接在最后一轮上，纠正时它能看到上一次的结果
       setTurns(ts.map((t, i) => (i === ts.length - 1 ? { ...t, answer: r.raw } : t)))
       setItems(r.items)
       per.current.clear()
       setNote(r.note)
       setDay(r.day)
-      if (r.time || !meal) setTime(r.time) // 改旧的一餐时，豆包没说钟点就保持原来的
+      setTime(r.time || t?.time || '') // 改旧的一餐时，豆包没说钟点就保持原来的
       setPer100(r.per100)
       // 说了「记住这个」的直接存，不用再点按钮
       const auto = r.per100.filter((f) => f.remember)
@@ -75,14 +84,22 @@ export default function MealDraft({
     if (!turns[turns.length - 1].answer) run(turns)
   }, [])
 
-  const correct = () => {
-    if (!fix.trim() || busy) return
+  const ask = (text: string) => {
+    if (!text || busy) return
     // 上一次的回答换成卡片上现在的样子，手动改过的数豆包也能看到
     const last = turns.length - 1
+    const edit = target && !meal ? recent.indexOf(target) + 1 : 0
     const ts = items.length
-      ? turns.map((t, i) => (i === last ? { ...t, answer: asAnswer(kept, note, day, time, per100) } : t))
+      ? turns.map((t, i) => (i === last ? { ...t, answer: asAnswer(kept, note, day, time, per100, edit) } : t))
       : turns
-    run([...ts, { text: fix.trim() }])
+    run([...ts, { text }])
+  }
+  const correct = () => ask(fix.trim())
+  // 生重、熟重同样克数热量差很多，切换后让豆包按新的重算这一样
+  const toggleRaw = (i: number) => {
+    const x = items[i]
+    const w = x.raw ? '熟' : '生'
+    ask(`「${x.name}」${x.grams ? ` ${Math.round(x.grams)} 克` : ''}是${w}重，按${w}重重新算这一样，其他不变`)
   }
 
   // 改重量时营养按比例跟着变；改热量只改热量
@@ -119,8 +136,20 @@ export default function MealDraft({
 
   const save = async () => {
     const said = turns.slice(meal ? 1 : before.length).map((t) => t.text?.trim())
-    if (meal) {
-      await putMeal({ ...meal, items: kept, note, time: time || meal.time, input: [meal.input, ...said].filter(Boolean).join(' / ') })
+    if (target && removing) {
+      await deleteMeal(target.id)
+      return onDone(true, remembered, '已删掉这一餐')
+    }
+    if (target) {
+      await putMeal({
+        ...target,
+        items: kept,
+        note,
+        time: time || target.time,
+        photo: target.photo ?? first.photo,
+        input: [target.input, ...said].filter(Boolean).join(' / '),
+      })
+      return onDone(true, remembered, '改好了')
     } else {
       await addMeal({
         id: newId(),
@@ -138,6 +167,8 @@ export default function MealDraft({
   }
 
   const total = sumNutr(items)
+  const when = (m: Meal) =>
+    `${m.date === today() ? '' : m.date === addDays(today(), -1) ? '昨天' : md(m.date)} ${m.time}`.trim()
 
   return (
     <div className="mask">
@@ -145,15 +176,26 @@ export default function MealDraft({
         <div className="drafthead">
           {photoUrl && <img src={photoUrl} alt="" />}
           <div>
-            <h2>{meal ? `改 ${meal.time} 这一餐` : '这一餐'}</h2>
+            <h2>{target ? `改 ${when(target)} 这一餐` : '这一餐'}</h2>
             {first.text && <div className="sub">{first.text}</div>}
+            {target && (
+              <div className="sub">
+                原来 {Math.round(sumNutr(target.items).kcal)} 千卡：{target.items.map((i) => i.name).join('、')}
+              </div>
+            )}
           </div>
         </div>
 
         {busy && <div className="busy">豆包在算…</div>}
         {error && <div className="error">{error}</div>}
 
-        {!busy && meal && <p className="sub">点名字、克数、热量直接改；改克数，蛋白碳水脂肪跟着变。</p>}
+        {!busy && target && !meal && (
+          <p className="sub">豆包认为你要{removing ? '删掉' : '改'}这一餐。不对就在下面说「这是新吃的一餐」。</p>
+        )}
+        {!busy && removing && target && <p className="removing">点右下角「删掉这一餐」才会删。</p>}
+        {!busy && items.length > 0 && (
+          <p className="sub">点框里的字和数直接改，改克数营养跟着变；点「生重 / 熟重」切换，豆包会重算。</p>
+        )}
 
         {!busy && items.length > 0 && (
           <>
@@ -166,27 +208,35 @@ export default function MealDraft({
                     placeholder="吃了什么"
                     onChange={(e) => setName(i, e.target.value)}
                   />
-                  <label>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={x.grams ?? ''}
-                      onChange={(e) => setGrams(i, Number(e.target.value))}
-                    />
-                    g{x.raw === true ? '生' : x.raw === false ? '熟' : ''}
-                  </label>
-                  <label>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      value={Math.round(x.nutr.kcal)}
-                      onChange={(e) => setKcal(i, Number(e.target.value))}
-                    />
-                    千卡
-                  </label>
                   <button className="x" onClick={() => remove(i)} aria-label="删掉这一样">
                     ×
                   </button>
+                  <div className="nums">
+                    <label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={x.grams ?? ''}
+                        placeholder="—"
+                        onChange={(e) => setGrams(i, Number(e.target.value))}
+                      />
+                      克
+                    </label>
+                    {typeof x.raw === 'boolean' && (
+                      <button className="rawbtn" onClick={() => toggleRaw(i)}>
+                        {x.raw ? '生重' : '熟重'} ⇄
+                      </button>
+                    )}
+                    <label>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        value={Math.round(x.nutr.kcal)}
+                        onChange={(e) => setKcal(i, Number(e.target.value))}
+                      />
+                      千卡
+                    </label>
+                  </div>
                   <div className="macro">{fmtNutr(x.nutr)}</div>
                 </div>
               ))}
@@ -194,7 +244,7 @@ export default function MealDraft({
             <div className="total">
               合计 <b>{Math.round(total.kcal)}</b> 千卡 · {fmtNutr(total)}
             </div>
-            {meal ? (
+            {target ? (
               <label className="when">
                 几点吃的
                 <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
@@ -209,7 +259,7 @@ export default function MealDraft({
             )}
           </>
         )}
-        {!busy && (
+        {!busy && !removing && (
           <button className="additem" onClick={addItem}>
             + 加一样
           </button>
@@ -259,7 +309,7 @@ export default function MealDraft({
               className="input"
               value={fix}
               placeholder={
-                meal
+                target
                   ? '或说一句让豆包改，如「饭只吃了一半」「牛肉是 150 克生重」'
                   : '不对就说一句，如「饭只吃了一半」「记住这个蛋白粉」'
               }
@@ -282,9 +332,15 @@ export default function MealDraft({
               重试
             </button>
           )}
-          <button className="btn primary" disabled={busy || !kept.length} onClick={save}>
-            {meal ? '保存' : '记录'}
-          </button>
+          {removing && target ? (
+            <button className="btn primary danger" disabled={busy} onClick={save}>
+              删掉这一餐
+            </button>
+          ) : (
+            <button className="btn primary" disabled={busy || !kept.length} onClick={save}>
+              {target ? '保存' : '记录'}
+            </button>
+          )}
         </div>
       </div>
     </div>

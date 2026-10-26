@@ -1,11 +1,12 @@
-import type { Food, Item, Nutr, Settings } from './db'
+import type { Food, Item, Meal, Nutr, Settings } from './db'
+import { addDays, today } from './date'
 import { toDataUrl } from './photos'
 
 const URL_ = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
 
 const SYSTEM = `你是营养估算助手，帮用户记录减脂饮食。用户会发一张饭菜照片、一段文字，或两者都有。
 请把这一餐拆成几样食物，估算每样的重量和营养，只输出 JSON，不要任何其他文字：
-{"items":[{"name":"米饭","grams":200,"raw":false,"kcal":232,"protein":5.2,"carbs":51,"fat":0.6}],"note":"假设说明","day":0,"time":"","per100":[]}
+{"items":[{"name":"米饭","grams":200,"raw":false,"kcal":232,"protein":5.2,"carbs":51,"fat":0.6}],"note":"假设说明","day":0,"time":"","per100":[],"edit":0,"remove":false}
 
 规则：
 - 用户文字里给的信息（重量、热量、做法、用油、品牌、吃了多少）优先于照片判断，用户给的数不要改。
@@ -22,24 +23,37 @@ const SYSTEM = `你是营养估算助手，帮用户记录减脂饮食。用户�
 - 用户要你记住某样食物（「记住这个」「以后都吃这款」「记一下这个蛋白粉」），就把它放进 per100 并把 remember 设为 true：有用户给的数或成分表就用它，都没有就按这类食物常见的数估，在 note 里说明是估的。name 用用户的叫法，简短，不加「这款」之类的字。
 - 用户发来「我记住的食物」清单时，提到清单里的食物（名字相近也算）就按清单里每 100 克的数乘以重量算，不要自己估；没说吃了多少克就按常见一份估克数，在 note 里说明。用户说清单里的数不对、给了新数，就按新数算，放进 per100 并把 remember 设为 true。
 - 用户只是要你记住食物、没说这一餐吃了，items 返回空数组，note 写「已记住 XX」。
+- 用户发来「已经记下的饭」清单时：如果这句话是要改清单里的某一餐（如「刚才那顿只吃了一半」「中午的牛肉其实是熟重」「早饭改成 600 卡」「上一餐的油没那么多」），edit 填那一餐的编号，items 返回改完后这一餐的全部食物，没提到的照抄清单里的数；「刚才 / 上一顿」指标了「最近记的」那一餐。用户要删掉某一餐，edit 填编号、remove 设为 true、items 返回空数组。说的是新吃的一餐，edit 填 0。拿不准是改还是新吃的，按新吃的算，在 note 里提一句。没有清单时 edit 一律填 0。
 - 照片里不是食物，或者既没说吃了什么、也没说热量时，items 返回空数组，在 note 里说明需要补充什么。`
 
 // day：0 今天、-1 昨天……；time：HH:MM，没提就是空字符串
 // per100：这次用户报的、或成分表上的每 100 克营养；remember = 用户说了「记住」，自动存
 export type Per100 = { name: string; per100: Nutr; remember: boolean }
-export type Estimate = { items: Item[]; note: string; day: number; time: string; per100: Per100[]; raw: string }
+// edit：要改清单里第几餐（从 1 数），0 = 新的一餐；remove：要删掉那一餐
+export type Estimate = {
+  items: Item[]
+  note: string
+  day: number
+  time: string
+  per100: Per100[]
+  edit: number
+  remove: boolean
+  raw: string
+}
 
 // 一轮对话：第一轮是照片 / 原话，之后每轮是用户的纠正
 export type Turn = { text?: string; photo?: Blob; answer?: string }
 
 // 把一餐写成豆包回答的样子，接着改时当作「上一次的回答」（手动改过的数也带上）
-export const asAnswer = (items: Item[], note = '', day = 0, time = '', per100: Per100[] = []) =>
+export const asAnswer = (items: Item[], note = '', day = 0, time = '', per100: Per100[] = [], edit = 0) =>
   JSON.stringify({
     items: items.map((i) => ({ name: i.name, grams: i.grams, raw: i.raw, ...i.nutr })),
     note,
     day,
     time,
     per100: per100.map((f) => ({ name: f.name, ...f.per100, remember: false })),
+    edit,
+    remove: false,
   })
 
 // 我记住的食物写成一段话，跟规则一起发给豆包
@@ -49,10 +63,26 @@ const foodList = (foods: Food[]) =>
     .map((f) => `${f.name}：${Math.round(f.per100.kcal)} 千卡，蛋白 ${f.per100.protein}g，碳水 ${f.per100.carbs}g，脂肪 ${f.per100.fat}g`)
     .join('\n')
 
-export async function estimate(settings: Settings, turns: Turn[], foods: Food[] = []): Promise<Estimate> {
+// 今天、昨天已经记下的饭编上号发给豆包，说「刚才那顿只吃了一半」它知道改哪一餐
+const mealList = (meals: Meal[]) => {
+  const last = meals.reduce((a, m) => (m.createdAt > a.createdAt ? m : a), meals[0])
+  return (
+    '已经记下的饭（编号. 哪天 钟点：明细）：\n' +
+    meals
+      .map(
+        (m, i) =>
+          `${i + 1}. ${m.date === today() ? '今天' : m.date === addDays(today(), -1) ? '昨天' : m.date} ${m.time}${m === last ? '（最近记的）' : ''}：` +
+          asAnswer(m.items, m.note),
+      )
+      .join('\n')
+  )
+}
+
+export async function estimate(settings: Settings, turns: Turn[], foods: Food[] = [], recent: Meal[] = []): Promise<Estimate> {
   if (!settings.arkKey || !settings.model) throw new Error('先在设置里填豆包的 Key 和模型 ID')
 
-  const messages: unknown[] = [{ role: 'system', content: foods.length ? SYSTEM + '\n\n' + foodList(foods) : SYSTEM }]
+  const system = [SYSTEM, foods.length && foodList(foods), recent.length && mealList(recent)].filter(Boolean).join('\n\n')
+  const messages: unknown[] = [{ role: 'system', content: system }]
   for (const t of turns) {
     const content: unknown[] = []
     if (t.photo) content.push({ type: 'image_url', image_url: { url: await toDataUrl(t.photo) } })
@@ -84,13 +114,16 @@ export async function estimate(settings: Settings, turns: Turn[], foods: Food[] 
   }
   const data = await res.json()
   const raw: string = data.choices?.[0]?.message?.content ?? ''
-  return { ...parse(raw), raw }
+  const r = parse(raw)
+  // 编号对不上清单的当成新的一餐
+  const edit = r.edit >= 1 && r.edit <= recent.length ? r.edit : 0
+  return { ...r, edit, remove: edit > 0 && r.remove, raw }
 }
 
 function parse(raw: string): Omit<Estimate, 'raw'> {
   const m = raw.match(/\{[\s\S]*\}/)
   if (!m) throw new Error('豆包的回复看不懂，再试一次')
-  let obj: { items?: unknown[]; note?: unknown; day?: unknown; time?: unknown; per100?: unknown }
+  let obj: { items?: unknown[]; note?: unknown; day?: unknown; time?: unknown; per100?: unknown; edit?: unknown; remove?: unknown }
   try {
     obj = JSON.parse(m[0])
   } catch {
@@ -118,5 +151,13 @@ function parse(raw: string): Omit<Estimate, 'raw'> {
       }
     })
     .filter((f) => f.name && f.per100.kcal > 0 && f.per100.kcal <= 900) // 每 100 克最多 900 千卡（纯油）
-  return { items, note: String(obj.note ?? ''), day: day <= 0 && day >= -6 ? day : 0, time, per100 }
+  return {
+    items,
+    note: String(obj.note ?? ''),
+    day: day <= 0 && day >= -6 ? day : 0,
+    time,
+    per100,
+    edit: Math.round(n(obj.edit)),
+    remove: obj.remove === true,
+  }
 }

@@ -221,6 +221,7 @@ export default function Settings({
       <button className="btn primary wide" disabled={saving} onClick={save}>
         {saving ? '保存中…' : '保存'}
       </button>
+      <p className="hint version">版本 {__BUILD__}</p>
     </div>
   )
 }

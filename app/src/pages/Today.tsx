@@ -17,10 +17,6 @@ import MealDraft from '../components/MealDraft'
 // 已经记下的一餐当成豆包上一次的回答，改的时候接着它改
 const mealTurn = (m: Meal): Turn => ({ text: m.input, photo: m.photo, answer: asAnswer(m.items, m.note, 0, m.time) })
 
-// 说的是改刚记的那一餐，如「刚才那顿只吃了一半」「把上一餐改成 600 卡」
-const isFix = (t: string) =>
-  /刚才|刚刚|上一[顿餐]|最后一[顿餐]/.test(t) && /改|不对|错|只吃了|没吃|其实/.test(t) && !/又|再/.test(t)
-
 export default function Today({
   weights,
   settings,
@@ -32,7 +28,7 @@ export default function Today({
 }) {
   const [text, setText] = useState('')
   const [photo, setPhoto] = useState<Blob>()
-  const [draft, setDraft] = useState<{ first: Turn; before?: Turn[]; meal?: Meal }>()
+  const [draft, setDraft] = useState<{ first: Turn; before?: Turn[]; meal?: Meal; recent?: Meal[] }>()
   const [toast, setToast] = useState('')
   // 记住了食物：屏幕中间弹一个大提示，点「好」才关
   const [notice, setNotice] = useState<{ saved: boolean; foods: Per100[] }>()
@@ -93,17 +89,15 @@ export default function Today({
         say('先在右上角设置里填豆包的 Key 和模型 ID')
         return
       }
-      // 改刚记的那一餐：在它的基础上让豆包改，不另记一餐
-      const last = !photo && isFix(t) ? meals.reduce<Meal | undefined>((a, m) => (!a || m.createdAt > a.createdAt ? m : a), undefined) : undefined
-      if (last) {
-        setDraft({ before: [mealTurn(last)], first: { text: t }, meal: last })
-        return
-      }
+      // 今天、昨天记下的饭一起发给豆包：说「中午那顿只吃了一半」它就改那一餐，不另记
+      const recent = (await db.meals.where('date').anyOf(addDays(now, -1), now).toArray())
+        .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+        .slice(-12)
       // 套餐 + 一句要求（如「还是套餐一，饭少一半」）：在套餐基础上让豆包改
       setDraft(
         hit
-          ? { first: { text: t }, before: [{ text: `我吃了「${hit.combo.name}」`, answer: comboAnswer(hit.combo) }] }
-          : { first: { text: t, photo } },
+          ? { first: { text: t }, before: [{ text: `我吃了「${hit.combo.name}」`, answer: comboAnswer(hit.combo) }], recent }
+          : { first: { text: t, photo }, recent },
       )
       return
     }
@@ -130,14 +124,14 @@ export default function Today({
     if (confirm(`删掉套餐「${c.name}」？已经记下的饭不受影响。`)) deleteCombo(c.id)
   }
 
-  const draftDone = (saved: boolean, remembered: Per100[]) => {
+  const draftDone = (saved: boolean, remembered: Per100[], msg?: string) => {
     setDraft(undefined)
     if (saved || remembered.length) {
       setText('')
       setPhoto(undefined)
     }
     if (remembered.length) setNotice({ saved, foods: remembered })
-    else if (saved) say(draft?.meal ? '改好了' : '已记下这一餐')
+    else if (saved) say(msg ?? '已记下这一餐')
   }
 
   return (
@@ -193,7 +187,7 @@ export default function Today({
         <br />
         拍照或说吃了什么，豆包估热量，比如「两百克生牛肉、一碗紫米饭、一勺橄榄油」。
         <br />
-        记错了：点开那一餐点「修改」，或直接说「刚才那顿饭只吃了一半」。
+        记错了：点开那一餐点「修改」，或直接说「中午那顿饭只吃了一半」「把刚才那顿删了」。
         <br />
         {combos.length
           ? '常吃的直接说「还是套餐一」；有变化就加一句，如「还是套餐一，饭少一半」。'
@@ -284,7 +278,14 @@ export default function Today({
       </div>
 
       {draft && (
-        <MealDraft settings={settings} first={draft.first} before={draft.before} meal={draft.meal} onDone={draftDone} />
+        <MealDraft
+          settings={settings}
+          first={draft.first}
+          before={draft.before}
+          meal={draft.meal}
+          recent={draft.recent}
+          onDone={draftDone}
+        />
       )}
     </div>
   )
