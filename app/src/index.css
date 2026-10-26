@@ -384,16 +384,19 @@ textarea.input {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.combosheet .row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 16px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--line);
-}
 .mealmore {
   margin-top: 8px;
   padding-left: 54px;
+}
+.foodrows {
+  width: 100%;
+}
+.fitem .row > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.fitem .row .num {
+  flex: none;
 }
 .mealmore .row {
   display: flex;
@@ -408,6 +411,12 @@ textarea.input {
   margin-top: 4px;
   padding-left: 0;
   background: none;
+}
+/* 「修改」用实心按钮：不能套上面的去底色，否则白字白底看不见 */
+.mealmore .btn.primary {
+  padding-left: 16px;
+  margin-right: 12px;
+  background: var(--text);
 }
 
 /* ---------- 豆包估算卡片 ---------- */
@@ -1054,4 +1063,59 @@ select.input {
 
 .version {
   text-align: center;
+}
+
+/* ---------- 每样食物：点开看三大营养素 ---------- */
+.fitem {
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.fitem:last-child {
+  border-bottom: 0;
+}
+.fitem .row,
+.mealmore .fitem .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 15px;
+  padding: 8px 0;
+}
+.fitem .chev {
+  color: var(--sub);
+  font-size: 12px;
+}
+.macrobox {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 10px;
+}
+.macrobox > span {
+  flex: 1;
+  min-width: 70px;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--sub);
+}
+.macrobox b {
+  font-size: 20px;
+  color: var(--text);
+  margin-right: 2px;
+}
+.macrobox small {
+  display: block;
+  font-size: 13px;
+}
+.macrobox .fat {
+  background: #fdf3e1;
+}
+.macrobox p {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 14px;
+  color: #a5671a;
 }

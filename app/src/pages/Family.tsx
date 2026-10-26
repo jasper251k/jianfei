@@ -13,6 +13,7 @@ import Diff from '../components/Diff'
 import FamilyChart from '../components/FamilyChart'
 import WeightChart from '../components/WeightChart'
 import Budget from '../components/Budget'
+import FoodRows from '../components/FoodRows'
 
 const RANGES = [
   { label: '30 天', days: 30 },
@@ -305,6 +306,8 @@ function MemberDetail({
       alert((e as Error).message)
     }
   }
+  // 点开一餐看每样食物
+  const [openMeal, setOpenMeal] = useState<string>()
   const all = (isMe ? mine : meals) ?? []
   const todays = all.filter((m) => m.date === now).sort((a, b) => a.time.localeCompare(b.time))
   const eaten = sumNutr(todays.flatMap((m) => m.items))
@@ -331,7 +334,7 @@ function MemberDetail({
         {todays.length > 0 && (
           <div className="meals">
             {todays.map((m) => (
-              <div className="meal" key={m.id}>
+              <div className="meal" key={m.id} onClick={() => setOpenMeal(openMeal === m.id ? undefined : m.id)}>
                 <div className="mealrow">
                   <span className="noimg">{m.time}</span>
                   <div className="mealtext">
@@ -343,6 +346,11 @@ function MemberDetail({
                     <small>千卡</small>
                   </div>
                 </div>
+                {openMeal === m.id && (
+                  <div className="mealmore">
+                    <FoodRows items={m.items} />
+                  </div>
+                )}
               </div>
             ))}
           </div>

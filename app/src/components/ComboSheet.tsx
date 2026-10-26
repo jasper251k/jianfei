@@ -1,6 +1,7 @@
 import { deleteCombo, sumNutr, type Combo } from '../db'
 import { renameCombo } from '../combos'
 import { fmtNutr } from '../nutr'
+import FoodRows from './FoodRows'
 
 // 点套餐按钮：先看里面有什么，再决定照着记、改名字或删掉
 export default function ComboSheet({
@@ -35,17 +36,7 @@ export default function ComboSheet({
     <div className="mask" onClick={onClose}>
       <div className="sheet combosheet" onClick={(e) => e.stopPropagation()}>
         <h2>{combo.name}</h2>
-        <div className="items">
-          {combo.items.map((i, k) => (
-            <div className="row" key={k}>
-              <span>
-                {i.name}
-                {i.grams ? ` ${Math.round(i.grams)} 克${i.raw === true ? '（生）' : i.raw === false ? '（熟）' : ''}` : ''}
-              </span>
-              <span className="num">{Math.round(i.nutr.kcal)} 千卡</span>
-            </div>
-          ))}
-        </div>
+        <FoodRows items={combo.items} />
         <div className="total">
           合计 <b>{Math.round(total.kcal)}</b> 千卡 · {fmtNutr(total)}
         </div>

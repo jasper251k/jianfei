@@ -3,6 +3,7 @@ import { deleteMeal, sumNutr, type Meal } from '../db'
 import { useBlobUrl } from '../photos'
 import { fmtNutr } from '../nutr'
 import { nextName, saveCombo } from '../combos'
+import FoodRows from './FoodRows'
 
 // 今天页里的一餐：点开看明细和豆包的假设，可修改、删除、存成套餐
 export default function MealCard({
@@ -47,22 +48,8 @@ export default function MealCard({
       </div>
       {open && (
         <div className="mealmore">
-          {meal.items.map((i, k) => (
-            <div
-              className="row tap"
-              key={k}
-              onClick={(e) => {
-                e.stopPropagation()
-                onEdit()
-              }}
-            >
-              <span>
-                {i.name}
-                {i.grams ? ` ${Math.round(i.grams)}g${i.raw === true ? '生' : i.raw === false ? '熟' : ''}` : ''}
-              </span>
-              <span className="num">{Math.round(i.nutr.kcal)} 千卡</span>
-            </div>
-          ))}
+          <FoodRows items={meal.items} />
+          <p className="sub">点一样食物，看它的蛋白质、碳水、脂肪。</p>
           {meal.input && <p className="sub">你说的：{meal.input}</p>}
           {meal.note && <p className="sub">豆包的假设：{meal.note}</p>}
           <button
