@@ -8,11 +8,12 @@ import { dailyTarget } from '../target'
 import { asAnswer, type Per100, type Turn } from '../ai'
 import { fmtNutr } from '../nutr'
 import { comboAnswer, matchCombo, recordCombo } from '../combos'
-import { deleteCombo, type Combo } from '../db'
+import type { Combo } from '../db'
 import Budget from '../components/Budget'
 import Diff from '../components/Diff'
 import MealCard from '../components/MealCard'
 import MealDraft from '../components/MealDraft'
+import ComboSheet from '../components/ComboSheet'
 
 // 已经记下的一餐当成豆包上一次的回答，改的时候接着它改
 const mealTurn = (m: Meal): Turn => ({ text: m.input, photo: m.photo, answer: asAnswer(m.items, m.note, 0, m.time) })
@@ -32,7 +33,8 @@ export default function Today({
   const [toast, setToast] = useState('')
   // 记住了食物：屏幕中间弹一个大提示，点「好」才关
   const [notice, setNotice] = useState<{ saved: boolean; foods: Per100[] }>()
-  const [editCombos, setEditCombos] = useState(false)
+  // 点开看明细的套餐
+  const [openCombo, setOpenCombo] = useState<Combo>()
   const timer = useRef(0)
   const area = useRef<HTMLTextAreaElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -120,10 +122,6 @@ export default function Today({
     say(`已照「${c.name}」记下 ${Math.round(sumNutr(c.items).kcal)} 千卡`)
   }
 
-  const removeCombo = (c: Combo) => {
-    if (confirm(`删掉套餐「${c.name}」？已经记下的饭不受影响。`)) deleteCombo(c.id)
-  }
-
   const draftDone = (saved: boolean, remembered: Per100[], msg?: string) => {
     setDraft(undefined)
     if (saved || remembered.length) {
@@ -190,7 +188,7 @@ export default function Today({
         记错了：点开那一餐点「修改」，或直接说「中午那顿饭只吃了一半」「把刚才那顿删了」。
         <br />
         {combos.length
-          ? '常吃的直接说「还是套餐一」；有变化就加一句，如「还是套餐一，饭少一半」。'
+          ? '常吃的点底部套餐按钮，能看到里面有什么；也可以直接说「还是套餐一」，有变化就加一句，如「还是套餐一，饭少一半」。'
           : '常吃的一餐：记下后点开它，点「存成套餐」，以后说「还是套餐一」就行。'}
       </p>
 
@@ -220,16 +218,15 @@ export default function Today({
 
       <div className="composer">
         {combos.length > 0 && (
-          <div className={`combos${editCombos ? ' editing' : ''}`}>
+          <div className="combos">
             {combos.map((c) => (
-              <button key={c.id} onClick={() => (editCombos ? removeCombo(c) : eatCombo(c, c.name))}>
-                <b>{c.name}</b>
-                <span>{Math.round(sumNutr(c.items).kcal)}</span>
+              <button key={c.id} onClick={() => setOpenCombo(c)}>
+                <span className="cname">
+                  <b>{c.name}</b> {Math.round(sumNutr(c.items).kcal)} 千卡
+                </span>
+                <span className="cfoods">{c.items.map((i) => i.name).join('、')}</span>
               </button>
             ))}
-            <button className="combosedit" onClick={() => setEditCombos(!editCombos)}>
-              {editCombos ? '完成' : '删套餐'}
-            </button>
           </div>
         )}
         {photoUrl && (
@@ -276,6 +273,17 @@ export default function Today({
           </button>
         </div>
       </div>
+
+      {openCombo && (
+        <ComboSheet
+          combo={openCombo}
+          onClose={() => setOpenCombo(undefined)}
+          onEat={() => {
+            setOpenCombo(undefined)
+            eatCombo(openCombo, openCombo.name)
+          }}
+        />
+      )}
 
       {draft && (
         <MealDraft

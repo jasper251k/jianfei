@@ -42,6 +42,12 @@ export async function saveCombo(name: string, items: Item[], note?: string) {
   await putCombo({ id: newId(), name, items, note, createdAt: Date.now() })
 }
 
+export async function renameCombo(c: Combo, name: string) {
+  const all = await db.combos.toArray()
+  if (all.some((x) => x.id !== c.id && norm(x.name) === norm(name))) throw new Error(`已经有叫「${name}」的套餐了`)
+  await putCombo({ ...c, name })
+}
+
 // 照套餐记一餐
 export const recordCombo = (c: Combo, input: string) =>
   addMeal({ id: newId(), owner: 'me', date: today(), time: hm(), items: c.items, input, note: c.note, createdAt: Date.now() })

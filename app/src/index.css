@@ -355,29 +355,41 @@ textarea.input {
 .combos button {
   flex: none;
   display: flex;
-  align-items: baseline;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  max-width: 180px;
   padding: 7px 12px;
-  border-radius: 16px;
+  border-radius: 12px;
   background: var(--card);
   border: 1px solid var(--line);
   font-size: 15px;
+  text-align: left;
 }
-.combos button b {
-  font-weight: 600;
-}
-.combos button span {
+.combos .cname {
   font-size: 12px;
   color: var(--sub);
+  white-space: nowrap;
 }
-.combos .combosedit {
-  color: var(--sub);
+.combos .cname b {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+/* 套餐里有什么，太长就省略 */
+.combos .cfoods {
   font-size: 13px;
-  border-style: dashed;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.combos.editing button:not(.combosedit) {
-  border-color: var(--up);
-  color: var(--up);
+.combosheet .row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
 }
 .mealmore {
   margin-top: 8px;
