@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, putWeights, sumNutr, type Meal, type Settings, type Weight } from '../db'
-import { addDays, md, today, weekday } from '../date'
+import { addDays, md, sundayOf, today, weekday } from '../date'
 import { avg7, fmtDiff, fmtKg, parseWeights, prevOf } from '../weights'
 import { compress, useBlobUrl } from '../photos'
 import { dailyTarget } from '../target'
@@ -52,6 +52,9 @@ export default function Today({
   const avg = avg7(weights, now)
   // 「比上周」= 今天的 7 天平均 − 7 天前那天的 7 天平均
   const lastWeekAvg = avg7(weights, addDays(now, -7))
+  // 本周日的目标（周日当天就是今天的）；null = 还没定
+  const thisSun = sundayOf(now)
+  const weekGoal = useLiveQuery(async () => (await db.goals.get(thisSun)) ?? null, [thisSun])
 
   const say = (msg: string) => {
     setToast(msg)
@@ -168,9 +171,13 @@ export default function Today({
             </span>
           )}
         </div>
-        {weekday(now) === 6 && (
+        {weekGoal !== undefined && (
           <button className="linkbtn goallink" onClick={onOpenTrend}>
-            今天周日：看本周目标、定下周目标 ›
+            {weekday(now) === 6
+              ? '今天周日：看本周目标、定下周目标 ›'
+              : weekGoal
+                ? `本周目标 ${fmtKg(weekGoal.kg)} kg（${md(thisSun)}周日）›`
+                : `定本周目标（${md(thisSun)}周日）›`}
           </button>
         )}
       </section>
