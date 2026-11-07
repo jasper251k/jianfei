@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, putWeights, sumNutr, type Meal, type Settings, type Weight } from '../db'
-import { addDays, md, today } from '../date'
+import { addDays, md, today, weekday } from '../date'
 import { avg7, fmtDiff, fmtKg, parseWeights, prevOf } from '../weights'
 import { compress, useBlobUrl } from '../photos'
 import { dailyTarget } from '../target'
@@ -22,10 +22,12 @@ export default function Today({
   weights,
   settings,
   onOpenSettings,
+  onOpenTrend,
 }: {
   weights: Weight[]
   settings?: Settings
   onOpenSettings: () => void
+  onOpenTrend: () => void
 }) {
   const [text, setText] = useState('')
   const [photo, setPhoto] = useState<Blob>()
@@ -166,6 +168,11 @@ export default function Today({
             </span>
           )}
         </div>
+        {weekday(now) === 6 && (
+          <button className="linkbtn goallink" onClick={onOpenTrend}>
+            今天周日：看本周目标、定下周目标 ›
+          </button>
+        )}
       </section>
 
       <section className="card">

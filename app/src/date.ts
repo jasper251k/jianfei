@@ -28,3 +28,5 @@ export const md = (s: string) => `${Number(s.slice(5, 7))}月${Number(s.slice(8)
 export const weekday = (s: string) => (toDate(s).getDay() + 6) % 7
 
 export const mondayOf = (s: string) => addDays(s, -weekday(s))
+
+export const sundayOf = (s: string) => addDays(mondayOf(s), 6)

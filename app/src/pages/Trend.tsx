@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import type { Weight } from '../db'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db, type Weight } from '../db'
 import { addDays, md, today } from '../date'
 import { fmtKg, weekly } from '../weights'
 import Diff from '../components/Diff'
 import WeightChart from '../components/WeightChart'
+import WeekGoal, { Versus } from '../components/WeekGoal'
 
 const RANGES = [
   { label: '30 天', days: 30 },
@@ -16,12 +18,15 @@ export default function Trend({ weights }: { weights: Weight[] }) {
   const now = today()
   const from = days ? addDays(now, -(days - 1)) : (weights[0]?.date ?? now)
   const weeks = weekly(weights).reverse()
+  const goals = useLiveQuery(() => db.goals.toArray())
 
   return (
     <div className="trend">
       <header className="pagehead">
         <h1>趋势</h1>
       </header>
+
+      {goals && <WeekGoal weights={weights} goals={goals} />}
 
       <div className="seg">
         {RANGES.map((r) => (
@@ -42,14 +47,32 @@ export default function Trend({ weights }: { weights: Weight[] }) {
       {weeks.length > 0 && (
         <section className="card list">
           <div className="label">每周平均（周一到周日）</div>
-          {weeks.map((w) => (
-            <div className="row" key={w.monday}>
-              <span>{md(w.monday)}那周</span>
-              <span className="num">{fmtKg(w.avg)}</span>
-              <span className="sub">记 {w.count} 天</span>
-              <span className="diffcell">{w.change !== undefined && <Diff value={w.change} />}</span>
-            </div>
-          ))}
+          {weeks.map((w) => {
+            // 那周日的目标：周日过了（含当天）才判断达没达到
+            const sun = addDays(w.monday, 6)
+            const goal = goals?.find((g) => g.sunday === sun)
+            return (
+              <div className="row" key={w.monday}>
+                <span>
+                  {md(w.monday)}那周
+                  {goal && (
+                    <span className="goaltag">
+                      目标 {fmtKg(goal.kg)}
+                      {sun <= now && (
+                        <>
+                          {' · '}
+                          <Versus value={w.avg} target={goal.kg} />
+                        </>
+                      )}
+                    </span>
+                  )}
+                </span>
+                <span className="num">{fmtKg(w.avg)}</span>
+                <span className="sub">记 {w.count} 天</span>
+                <span className="diffcell">{w.change !== undefined && <Diff value={w.change} />}</span>
+              </div>
+            )
+          })}
         </section>
       )}
 

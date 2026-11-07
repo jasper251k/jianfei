@@ -32,6 +32,9 @@ export type Combo = { id: string; name: string; items: Item[]; note?: string; cr
 // 我的食物：加工食品等，记住每 100 克的营养，以后估算按这个算；加入家庭后同步到云端（只有自己能看到）
 export type Food = { id: string; name: string; per100: Nutr; createdAt: number }
 
+// 每周目标：sunday = 目标那个周日（YYYY-MM-DD），kg = 目标体重，setOn = 哪天定的；只存在手机上
+export type Goal = { sunday: string; kg: number; setOn: string }
+
 // 还没传上云的改动：kind + 体重日期 / 饮食、套餐、食物的 id；deleted = 删掉了
 export type Pending = { key: string; kind: 'weight' | 'meal' | 'combo' | 'food'; ref: string; deleted: boolean }
 
@@ -48,6 +51,7 @@ export const db = new Dexie('jianfei') as Dexie & {
   familyMeals: EntityTable<CloudMeal, 'id'>
   combos: EntityTable<Combo, 'id'>
   foods: EntityTable<Food, 'id'>
+  goals: EntityTable<Goal, 'sunday'>
 }
 
 db.version(1).stores({
@@ -87,6 +91,18 @@ db.version(5).stores({
   familyMeals: 'id, memberId, date',
   combos: 'id, createdAt',
   foods: 'id, createdAt',
+})
+db.version(6).stores({
+  weights: 'date',
+  meals: 'id, date',
+  settings: 'key',
+  pending: 'key',
+  family: 'key',
+  familyWeights: 'key, memberId',
+  familyMeals: 'id, memberId, date',
+  combos: 'id, createdAt',
+  foods: 'id, createdAt',
+  goals: 'sunday',
 })
 
 export const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)

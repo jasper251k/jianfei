@@ -72,7 +72,12 @@ export default function App() {
     <div className="app">
       <main className="screen">
         {tab === 'today' && (
-          <Today weights={weights} settings={settings ?? undefined} onOpenSettings={() => setShowSettings(true)} />
+          <Today
+            weights={weights}
+            settings={settings ?? undefined}
+            onOpenSettings={() => setShowSettings(true)}
+            onOpenTrend={() => setTab('trend')}
+          />
         )}
         {tab === 'calendar' && <Calendar weights={weights} />}
         {tab === 'trend' && <Trend weights={weights} />}

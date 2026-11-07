@@ -1119,3 +1119,74 @@ select.input {
   font-size: 14px;
   color: #a5671a;
 }
+
+/* ---------- 每周目标 ---------- */
+.goalhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.goalkg {
+  font-size: 34px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+.goalkg small {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--sub);
+}
+.goalcell {
+  width: 64px;
+  text-align: right;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.goalok {
+  color: var(--down);
+  font-weight: 600;
+}
+.goalmiss {
+  color: var(--up);
+}
+.goaltip {
+  font-size: 14px;
+  color: var(--sub);
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+.goalinput {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.goalinput .input {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.goalinput .btn {
+  flex: none;
+  padding: 10px 14px;
+  font-size: 17px;
+}
+.goalinput .btn.primary {
+  font-size: 15px;
+}
+.goaltag {
+  display: block;
+  font-size: 12px;
+  color: var(--sub);
+  margin-top: 2px;
+}
+.goallink {
+  margin-top: 10px;
+}
+.goal.list > .row:first-child {
+  border-top: 0;
+}
